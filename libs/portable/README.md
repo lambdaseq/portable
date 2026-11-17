@@ -8,8 +8,9 @@ It contains dependency metadata only. Require each family's namespace directly:
 (clock/now-ms)
 ```
 
-Depend directly on a family when you need only clocks, bytes, environment lookup, or paths.
+Depend directly on a family when you need only clocks, bytes, environment lookup, paths, or filesystem access.
 Coordinates are `lambdaseq/portable-clock`, `lambdaseq/portable-bytes`, `lambdaseq/portable-env`, and `lambdaseq/portable-paths`.
+Use `lambdaseq/portable-fs` for filesystem access; it includes `portable-bytes` for its byte and text contract.
 
 Run commands from the workspace root:
 

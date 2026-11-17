@@ -14,9 +14,14 @@
   (when-not (string? value)
     (throw-invalid-input operation :expected-string)))
 
+(defn byte-vector?
+  "Return whether a value is an immutable vector of unsigned byte integers."
+  [value]
+  (and (vector? value)
+       (every? #(and (integer? %) (<= 0 % 255)) value)))
+
 (defn- require-bytes [operation value]
-  (when-not (and (vector? value)
-                 (every? #(and (integer? %) (<= 0 % 255)) value))
+  (when-not (byte-vector? value)
     (throw-invalid-input operation :expected-byte-vector)))
 
 #?(:cljs

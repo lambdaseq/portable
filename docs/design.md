@@ -10,6 +10,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-bytes` owns `portable.bytes` and uses immutable unsigned byte vectors across runtimes.
 `lambdaseq/portable-env` owns `portable.env`, with process lookup and explicit browser rejection.
 `lambdaseq/portable-paths` owns `portable.paths`, with explicit POSIX and Windows syntax independent of the host.
+`lambdaseq/portable-fs` owns `portable.fs`, with synchronous native filesystem access and explicit browser rejection.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -28,7 +29,7 @@ jank-specific interop stays behind the public API and needs its own runner and c
 All implemented families run shared contracts on JVM Clojure, Babashka, and ClojureScript in Node and headless Chrome.
 The browser runner uses the same JavaScript contracts, including asynchronous elapsed-time checks.
 CLR, Dart, and jank remain targets without verified adapters.
-Families share development test support without runtime dependencies on each other.
+Families share development test support. Filesystem byte and text operations depend on `portable-bytes` for their shared representation and encoding.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -56,5 +57,6 @@ Clocks expose `now-ms` and `monotonic-ms`; see the [clock contract](../libs/port
 Bytes expose UTF-8, Base64, and hex conversions; see the [byte contract](../libs/portable-bytes/README.md).
 Environment lookup exposes `get-env`; see the [environment contract](../libs/portable-env/README.md).
 Paths expose pure lexical operations; see the [path contract](../libs/portable-paths/README.md).
-Choose later families independently, including filesystem access and networking.
+Filesystem operations use native host paths; see the [filesystem contract](../libs/portable-fs/README.md).
+Choose later families independently, including networking.
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

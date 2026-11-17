@@ -19,6 +19,7 @@ The `lambdaseq/portable` umbrella also includes it.
 Bytes are immutable vectors of integers from `0` through `255`.
 Native arrays, lists, nil, and out-of-range values are rejected.
 All conversions are pure and synchronous. No function changes its input.
+`byte-vector?` checks this shared representation without conversion, so filesystem writes reuse the same validation.
 
 | Function | Input | Output |
 | --- | --- | --- |

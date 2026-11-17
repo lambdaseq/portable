@@ -8,6 +8,12 @@
        (catch #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core/ExceptionInfo) error
          (ex-data error))))
 
+(deftest byte-vector-predicate
+  (doseq [value [[] [0] [255] (vec (range 256))]]
+    (is (true? (bytes/byte-vector? value))))
+  (doseq [value [nil '(0) "" [-1] [256] [1.5] [nil] [false]]]
+    (is (false? (bytes/byte-vector? value)))))
+
 (deftest utf8-examples
   (doseq [[text data] [["" []]
                        ["hello" [104 101 108 108 111]]

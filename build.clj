@@ -52,7 +52,14 @@
                      :test-runner portable.paths-test-runner
                      :browser-tests "target/browser.html"
                      :lib lambdaseq/portable-paths
-                     :description "Lexical POSIX and Windows path operations."}})
+                     :description "Lexical POSIX and Windows path operations."}
+    :portable-fs {:kind :lib
+                  :dir "libs/portable-fs"
+                  :platform :cljc
+                  :test-runner portable.fs-test-runner
+                  :browser-tests "target/browser.html"
+                  :lib lambdaseq/portable-fs
+                  :description "Synchronous portable filesystem operations."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
@@ -198,8 +205,12 @@
       (println "Testing" (name id))
       (run-command directory ["clojure" "-M:test"] (:test-env module))
       (when (= :cljc (:platform module))
-        (run-command directory ["bb" "--classpath" (str/join File/pathSeparator ["src" "test" "../../test-support"])
-                                "-m" (str (:test-runner module))] (:test-env module))
+        (let [classpath (b/with-project-root directory
+                          (->> (b/create-basis {:project "deps.edn" :root nil :user nil :aliases [:test]})
+                               :classpath-roots
+                               (str/join File/pathSeparator)))]
+          (run-command directory ["bb" "--classpath" classpath "-m" (str (:test-runner module))]
+                       (:test-env module)))
         (run-command directory ["clojure" "-M:test-cljs"]))
       (when (#{:cljs :cljc} (:platform module))
         (run-command directory ["node" "target/tests.js"] (:test-env module)))

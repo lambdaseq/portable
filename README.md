@@ -38,11 +38,12 @@ jar tf libs/portable-clock/target/portable-clock-0.1.0.jar
 jar tf libs/portable-bytes/target/portable-bytes-0.1.0.jar
 jar tf libs/portable-env/target/portable-env-0.1.0.jar
 jar tf libs/portable-paths/target/portable-paths-0.1.0.jar
+jar tf libs/portable-fs/target/portable-fs-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
 Shared contracts run on JVM Clojure, Babashka, Node, and headless Chrome.
-Browser environment lookups are verified to fail explicitly.
+Browser environment and filesystem operations are verified to fail explicitly.
 
 ### Troubleshooting
 
@@ -59,6 +60,7 @@ Browser environment lookups are verified to fail explicitly.
 | `libs/portable-bytes/`          | UTF-8, Base64, and hex, `lambdaseq/portable-bytes`              |
 | `libs/portable-env/`            | Environment lookup, `lambdaseq/portable-env`                  |
 | `libs/portable-paths/`          | POSIX and Windows paths, `lambdaseq/portable-paths`            |
+| `libs/portable-fs/`             | Synchronous filesystem access, `lambdaseq/portable-fs`        |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -80,6 +82,8 @@ For environment lookup alone, use `lambdaseq/portable-env` with `:local/root "..
 See the [environment lookup contract](libs/portable-env/README.md).
 For lexical paths alone, use `lambdaseq/portable-paths` with `:local/root "../portable/libs/portable-paths"`.
 See the [path styles and operations](libs/portable-paths/README.md).
+For filesystem access alone, use `lambdaseq/portable-fs` with `:local/root "../portable/libs/portable-fs"`.
+See the [filesystem operations and browser behavior](libs/portable-fs/README.md).
 
 ## Portability contract
 
