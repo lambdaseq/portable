@@ -39,11 +39,12 @@ jar tf libs/portable-bytes/target/portable-bytes-0.1.0.jar
 jar tf libs/portable-env/target/portable-env-0.1.0.jar
 jar tf libs/portable-paths/target/portable-paths-0.1.0.jar
 jar tf libs/portable-fs/target/portable-fs-0.1.0.jar
+jar tf libs/portable-tcp/target/portable-tcp-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
 Shared contracts run on JVM Clojure, Babashka, Node, and headless Chrome.
-Browser environment and filesystem operations are verified to fail explicitly.
+Browser environment, filesystem, and TCP operations are verified to fail explicitly.
 
 ### Troubleshooting
 
@@ -61,6 +62,7 @@ Browser environment and filesystem operations are verified to fail explicitly.
 | `libs/portable-env/`            | Environment lookup, `lambdaseq/portable-env`                  |
 | `libs/portable-paths/`          | POSIX and Windows paths, `lambdaseq/portable-paths`            |
 | `libs/portable-fs/`             | Synchronous filesystem access, `lambdaseq/portable-fs`        |
+| `libs/portable-tcp/`            | Asynchronous TCP clients, `lambdaseq/portable-tcp`            |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -84,6 +86,8 @@ For lexical paths alone, use `lambdaseq/portable-paths` with `:local/root "../po
 See the [path styles and operations](libs/portable-paths/README.md).
 For filesystem access alone, use `lambdaseq/portable-fs` with `:local/root "../portable/libs/portable-fs"`.
 See the [filesystem operations and browser behavior](libs/portable-fs/README.md).
+For TCP clients alone, use `lambdaseq/portable-tcp` with `:local/root "../portable/libs/portable-tcp"`.
+See the [TCP callbacks and connection lifecycle](libs/portable-tcp/README.md).
 
 ## Portability contract
 

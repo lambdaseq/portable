@@ -59,7 +59,14 @@
                   :test-runner portable.fs-test-runner
                   :browser-tests "target/browser.html"
                   :lib lambdaseq/portable-fs
-                  :description "Synchronous portable filesystem operations."}})
+                  :description "Synchronous portable filesystem operations."}
+    :portable-tcp {:kind :lib
+                   :dir "libs/portable-tcp"
+                   :platform :cljc
+                   :test-runner portable.tcp-test-runner
+                   :browser-tests "target/browser.html"
+                   :lib lambdaseq/portable-tcp
+                   :description "Asynchronous portable TCP client sockets."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)

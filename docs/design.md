@@ -11,6 +11,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-env` owns `portable.env`, with process lookup and explicit browser rejection.
 `lambdaseq/portable-paths` owns `portable.paths`, with explicit POSIX and Windows syntax independent of the host.
 `lambdaseq/portable-fs` owns `portable.fs`, with synchronous native filesystem access and explicit browser rejection.
+`lambdaseq/portable-tcp` owns `portable.tcp`, with asynchronous native sockets and explicit browser rejection.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -30,6 +31,7 @@ All implemented families run shared contracts on JVM Clojure, Babashka, and Cloj
 The browser runner uses the same JavaScript contracts, including asynchronous elapsed-time checks.
 CLR, Dart, and jank remain targets without verified adapters.
 Families share development test support. Filesystem byte and text operations depend on `portable-bytes` for their shared representation and encoding.
+TCP also depends on `portable-bytes` for unsigned byte vectors.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -42,6 +44,16 @@ The generated build uses JVM tooling to package `.cljc` sources; that build sett
 
 Reader conditionals and host-specific source files are implementation details.
 Prefer direct implementation branches before introducing a protocol or backend registry.
+
+## Networking layers
+
+Build network protocols from native socket transports upward.
+`portable-tcp` defines asynchronous connection lifecycle, byte reads and writes, deadlines, and output shutdown.
+TCP sockets use opaque resource handles; payloads and error data remain portable values.
+TLS uses host security implementations above TCP. HTTP protocol encoding and parsing belong to portable itself.
+Browser HTTP remains unsupported so every supported request uses portable's protocol stack.
+Do not substitute Fetch, browser HTTP clients, or host HTTP clients for that stack.
+Shared protocol codecs can still be tested in browsers without network access.
 
 ## Adding an API
 
@@ -58,5 +70,6 @@ Bytes expose UTF-8, Base64, and hex conversions; see the [byte contract](../libs
 Environment lookup exposes `get-env`; see the [environment contract](../libs/portable-env/README.md).
 Paths expose pure lexical operations; see the [path contract](../libs/portable-paths/README.md).
 Filesystem operations use native host paths; see the [filesystem contract](../libs/portable-fs/README.md).
-Choose later families independently, including networking.
+TCP exposes asynchronous client sockets; see the [TCP contract](../libs/portable-tcp/README.md).
+Define TLS and HTTP contracts above the TCP layer before implementing those libraries.
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.
