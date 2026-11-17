@@ -8,7 +8,7 @@ It contains dependency metadata only. Require each family's namespace directly:
 (clock/now-ms)
 ```
 
-Depend on `lambdaseq/portable-clock` or `lambdaseq/portable-bytes` directly when you need only that family.
+Depend on `lambdaseq/portable-clock`, `lambdaseq/portable-bytes`, or `lambdaseq/portable-env` directly when you need only that family.
 
 Run commands from the workspace root:
 

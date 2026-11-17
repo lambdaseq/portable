@@ -1,6 +1,7 @@
 {:paths []
  :deps {lambdaseq/portable-clock {:local/root "../portable-clock"}
-        lambdaseq/portable-bytes {:local/root "../portable-bytes"}}
+        lambdaseq/portable-bytes {:local/root "../portable-bytes"}
+        lambdaseq/portable-env {:local/root "../portable-env"}}
  :aliases
  {:repl
   {:extra-deps {nrepl/nrepl {:mvn/version "1.3.0"}}

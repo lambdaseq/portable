@@ -34,7 +34,18 @@
                      :test-runner portable.bytes-test-runner
                      :browser-tests "target/browser.html"
                      :lib lambdaseq/portable-bytes
-                     :description "Portable UTF-8, Base64, and hex conversion."}})
+                     :description "Portable UTF-8, Base64, and hex conversion."}
+    :portable-env {:kind :lib
+                   :dir "libs/portable-env"
+                   :platform :cljc
+                   :test-runner portable.env-test-runner
+                   :browser-tests "target/browser.html"
+                   :test-env {"PORTABLE_ENV_TEST_VALUE" "  portable-env λ=one\nline two  "
+                              "PORTABLE_ENV_TEST_EMPTY" ""
+                              "PORTABLE_ENV_TEST_NUMBER" "00123"
+                              "PORTABLE_ENV_TEST_FALSE" "false"}
+                   :lib lambdaseq/portable-env
+                   :description "Portable environment variable lookup."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
@@ -70,10 +81,12 @@
         (throw (ex-info "Module target directory escapes the module." {:dir (:dir module)}))))
     (str (.toFile directory))))
 
-(defn- run-command [directory args]
-  (let [result (b/process {:dir directory :command-args args})]
-    (when-not (zero? (:exit result))
-      (throw (ex-info "Command failed." (assoc result :dir directory :command args))))))
+(defn- run-command
+  ([directory args] (run-command directory args nil))
+  ([directory args environment]
+   (let [result (b/process {:dir directory :command-args args :env environment})]
+     (when-not (zero? (:exit result))
+       (throw (ex-info "Command failed." (assoc result :dir directory :command args)))))))
 
 (defn- create-publication-basis [basis modules-by-directory opts]
   ;; tools.deps resolves local roots to absolute paths before this conversion.
@@ -176,13 +189,13 @@
           :when (not= false (:test? module))]
     (let [directory (resolve-module-directory module)]
       (println "Testing" (name id))
-      (run-command directory ["clojure" "-M:test"])
+      (run-command directory ["clojure" "-M:test"] (:test-env module))
       (when (= :cljc (:platform module))
         (run-command directory ["bb" "--classpath" (str/join File/pathSeparator ["src" "test" "../../test-support"])
-                                "-m" (str (:test-runner module))])
+                                "-m" (str (:test-runner module))] (:test-env module))
         (run-command directory ["clojure" "-M:test-cljs"]))
       (when (#{:cljs :cljc} (:platform module))
-        (run-command directory ["node" "target/tests.js"]))
+        (run-command directory ["node" "target/tests.js"] (:test-env module)))
       (when-let [page (:browser-tests module)]
         (run-command directory ["clojure" "-M:test-browser"])
         (b/copy-file {:src "test-support/browser.html" :target (str (io/file directory page))})

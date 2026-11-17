@@ -8,6 +8,7 @@ Consumer code depends on `portable.*` namespaces. Host selection, interop, and r
 Each API family lives in its own library and owns its public namespaces and shared contracts.
 `lambdaseq/portable-clock` owns `portable.clock`.
 `lambdaseq/portable-bytes` owns `portable.bytes` and uses immutable unsigned byte vectors across runtimes.
+`lambdaseq/portable-env` owns `portable.env`, with process lookup and explicit browser rejection.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -23,7 +24,7 @@ Shared source is therefore a design option across these targets, subject to each
 [jank](https://jank-lang.org/) provides native Clojure with C++ interop and a `:jank` reader conditional.
 jank-specific interop stays behind the public API and needs its own runner and contract checks.
 
-Clock and byte contracts run on JVM Clojure, Babashka, and ClojureScript in Node and headless Chrome.
+Clock, byte, and environment contracts run on JVM Clojure, Babashka, and ClojureScript in Node and headless Chrome.
 The browser runner uses the same JavaScript contracts, including asynchronous elapsed-time checks.
 CLR, Dart, and jank remain targets without verified adapters.
 Families share development test support without runtime dependencies on each other.
@@ -52,5 +53,6 @@ Prefer direct implementation branches before introducing a protocol or backend r
 
 Clocks expose `now-ms` and `monotonic-ms`; see the [clock contract](../libs/portable-clock/README.md).
 Bytes expose UTF-8, Base64, and hex conversions; see the [byte contract](../libs/portable-bytes/README.md).
-Choose later families independently, including environment access, paths, filesystem access, and networking.
+Environment lookup exposes `get-env`; see the [environment contract](../libs/portable-env/README.md).
+Choose later families independently, including paths, filesystem access, and networking.
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.
