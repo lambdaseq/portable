@@ -4,6 +4,13 @@
             [portable.tcp.internal :as transport])
   #?(:clj (:import [java.net Socket])))
 
+(defn validate-ca-certs [operation certificates]
+  (when-not (and (vector? certificates) (seq certificates)
+                 (every? #(and (string? %)
+                               (re-matches #"[ \r\n\t]*-----BEGIN CERTIFICATE-----[ \r\n\t]+[A-Za-z0-9+/= \r\n\t]+-----END CERTIFICATE-----[ \r\n\t]*" %))
+                         certificates))
+    (transport/throw-invalid-input operation :invalid-ca-certs)))
+
 #?(:clj
    (defn- is-certificate-cause? [error]
      (some (fn [^Class type] (= "java.security.cert.CertificateException" (.getName type)))

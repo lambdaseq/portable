@@ -3,7 +3,7 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.build.api :as b])
-  (:import [java.io File]
+  (:import [java.io BufferedReader File InputStreamReader]
            [java.nio.file Files]
            [java.nio.file.attribute FileAttribute]
            [java.util.concurrent TimeUnit]))
@@ -73,7 +73,15 @@
                    :test-runner portable.tls-test-runner
                    :browser-tests "target/browser.html"
                    :lib lambdaseq/portable-tls
-                   :description "Verified asynchronous TLS clients over portable TCP."}})
+                   :description "Verified asynchronous TLS clients over portable TCP."}
+    :portable-http {:kind :lib
+                    :dir "libs/portable-http"
+                    :platform :cljc
+                    :test-runner portable.http-test-runner
+                    :browser-tests "target/browser.html"
+                    :browser-server ["node" "test/fixtures/server.cjs"]
+                    :lib lambdaseq/portable-http
+                    :description "HTTP/1.1 over portable TCP/TLS with browser Fetch support."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
@@ -184,16 +192,36 @@
         (throw (ex-info "Chrome or Chromium is required. Set CHROME_BIN to its executable path."
                         {:chrome-bin configured})))))
 
-(defn- run-browser-tests [directory page]
+(defn- start-browser-server! [directory command]
+  (let [process (-> (ProcessBuilder. ^java.util.List command)
+                    (.directory (io/file directory))
+                    (.redirectError (io/file directory "target/browser-server.log"))
+                    (.start))
+        reader (BufferedReader. (InputStreamReader. (.getInputStream process)))
+        port (promise)
+        stop! (fn []
+                (.destroy process)
+                (when-not (.waitFor process 5 TimeUnit/SECONDS)
+                  (.destroyForcibly process) (.waitFor process 5 TimeUnit/SECONDS))
+                (.close reader))]
+    (doto (Thread. ^Runnable (fn [] (deliver port (.readLine reader))) "portable-browser-server")
+      (.setDaemon true) (.start))
+    (let [line (deref port 5000 nil)]
+      (if (and line (re-matches #"[0-9]+" line))
+        {:url (str "http://127.0.0.1:" line "/browser.html") :stop! stop!}
+        (do (stop!) (throw (ex-info "Browser fixture server failed to start." {})))))))
+
+(defn- run-browser-tests [directory page server-command]
   (let [browser (resolve-browser)
         profile (Files/createTempDirectory "portable-browser-" (make-array FileAttribute 0))
         output (io/file directory "target/browser-results.html")
-        errors (io/file directory "target/browser-stderr.log")]
+        errors (io/file directory "target/browser-stderr.log")
+        server (when server-command (start-browser-server! directory server-command))]
     (try
       (let [command [browser "--headless" "--disable-gpu" "--no-first-run" "--no-default-browser-check"
                      (str "--user-data-dir=" profile)
-                     "--dump-dom" "--virtual-time-budget=1000" "--timeout=10000"
-                     (str (.toURI (io/file directory page)))]
+                     "--dump-dom" (str "--virtual-time-budget=" (if server-command 15000 1000)) "--timeout=10000"
+                     (or (:url server) (str (.toURI (io/file directory page))))]
             process (-> (ProcessBuilder. ^java.util.List command)
                         (.redirectOutput output)
                         (.redirectError errors)
@@ -210,6 +238,7 @@
                              :errors (str errors) :document document})))
           (println "Browser contracts passed. Results:" (str output))))
       (finally
+        (when-let [stop! (:stop! server)] (stop!))
         (b/delete {:path (str profile)})))))
 
 (defn test "Run shared contracts on JVM, Babashka, Node, and headless Chrome." [opts]
@@ -231,7 +260,7 @@
       (when-let [page (:browser-tests module)]
         (run-command directory ["clojure" "-M:test-browser"])
         (b/copy-file {:src "test-support/browser.html" :target (str (io/file directory page))})
-        (run-browser-tests directory page))))
+        (run-browser-tests directory page (:browser-server module)))))
   opts)
 
 (defn jar "Build source jars for libraries. Accepts :modules and :version." [opts]

@@ -19,10 +19,6 @@
   (and (string? value) (<= (count value) 253) (not (re-matches #"[0-9.]+" value))
        (some? (re-matches #"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+" value))))
 
-(defn- is-pem-certificate? [value]
-  (and (string? value)
-       (some? (re-matches #"[ \r\n\t]*-----BEGIN CERTIFICATE-----[ \r\n\t]+[A-Za-z0-9+/= \r\n\t]+-----END CERTIFICATE-----[ \r\n\t]*" value))))
-
 (defn connect!
   "Connect over TCP and complete a verified TLS handshake. Return a cancellable opaque handle.
   Options: :host, :port, :timeout-ms, :server-name, :ca-certs, :alpn. Callback: (error connection)."
@@ -35,10 +31,8 @@
       (transport/throw-invalid-input :portable.tls/connect! :invalid-port))
     (when (and (contains? parsed :server-name) (not (is-server-name? (:server-name parsed))))
       (transport/throw-invalid-input :portable.tls/connect! :invalid-server-name))
-    (when (and (contains? parsed :ca-certs)
-               (not (and (vector? (:ca-certs parsed)) (seq (:ca-certs parsed))
-                         (every? is-pem-certificate? (:ca-certs parsed)))))
-      (transport/throw-invalid-input :portable.tls/connect! :invalid-ca-certs))
+    (when (contains? parsed :ca-certs)
+      (internal/validate-ca-certs :portable.tls/connect! (:ca-certs parsed)))
     (when (and (contains? parsed :alpn)
                (not (and (vector? (:alpn parsed))
                          (every? #(and (string? %) (<= 1 (count %) 255) (re-matches #"[!-~]+" %)) (:alpn parsed)))))

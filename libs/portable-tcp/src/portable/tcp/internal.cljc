@@ -53,10 +53,16 @@
 (defn get-pending [connection slot]
   (get @(:state connection) slot))
 
+(defn schedule! [timeout-ms f]
+  #?(:clj (.schedule TIMER ^Runnable (bound-fn [] (f)) (long timeout-ms) TimeUnit/MILLISECONDS)
+     :cljs (js/setTimeout f timeout-ms)))
+
+(defn cancel-scheduled! [timer]
+  #?(:clj (.cancel ^java.util.concurrent.Future timer false)
+     :cljs (js/clearTimeout timer)))
+
 (defn- cancel-timer! [pending]
-  (when-let [timer @(:timer pending)]
-    #?(:clj (.cancel ^java.util.concurrent.Future timer false)
-       :cljs (js/clearTimeout timer))))
+  (when-let [timer @(:timer pending)] (cancel-scheduled! timer)))
 
 (defn- deliver! [pending error value]
   (cancel-timer! pending)
@@ -81,9 +87,7 @@
 
 (defn- arm-timeout! [connection slot pending timeout-ms]
   (let [expire! #(terminate! connection :timeout nil slot (:token pending))
-        timer #?(:clj (.schedule TIMER ^Runnable (bound-fn [] (expire!))
-                                 (long timeout-ms) TimeUnit/MILLISECONDS)
-                 :cljs (js/setTimeout expire! timeout-ms))]
+        timer (schedule! timeout-ms expire!)]
     (reset! (:timer pending) timer)
     (when-not (identical? (:token pending) (:token (get-pending connection slot)))
       (cancel-timer! pending))))

@@ -13,6 +13,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-fs` owns `portable.fs`, with synchronous native filesystem access and explicit browser rejection.
 `lambdaseq/portable-tcp` owns `portable.tcp`, with asynchronous native sockets and explicit browser rejection.
 `lambdaseq/portable-tls` owns `portable.tls`, with verified TLS layered over portable TCP.
+`lambdaseq/portable-http` owns `portable.http`, with native HTTP/1.1 over portable transports and browser Fetch support.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -34,6 +35,7 @@ CLR, Dart, and jank remain targets without verified adapters.
 Families share development test support. Filesystem byte and text operations depend on `portable-bytes` for their shared representation and encoding.
 TCP also depends on `portable-bytes` for unsigned byte vectors.
 TLS depends on TCP for connection establishment and lifecycle, and on bytes for plaintext vectors.
+HTTP depends on bytes, TCP, and TLS for its request and response contract.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -55,9 +57,9 @@ TCP sockets use opaque resource handles; payloads and error data remain portable
 TLS uses host security implementations above TCP. HTTP protocol encoding and parsing belong to portable itself.
 TLS transfers ownership of a connected TCP socket and shares bounded I/O and deadline handling.
 Certificate and peer-name verification are mandatory. TLS and TCP handles remain distinct.
-Browser HTTP remains unsupported so every supported request uses portable's protocol stack.
-Do not substitute Fetch, browser HTTP clients, or host HTTP clients for that stack.
-Shared protocol codecs can still be tested in browsers without network access.
+Process-runtime HTTP requests use portable's protocol stack. Browser requests wrap Fetch because ordinary pages lack raw TCP sockets.
+The public request and response shapes are shared; browser trust, headers, CORS, decoding, and wire protocol remain browser-controlled.
+Unavailable browser controls fail explicitly when detectable. Shared codec contracts still run in browsers.
 
 ## Adding an API
 
@@ -76,5 +78,5 @@ Paths expose pure lexical operations; see the [path contract](../libs/portable-p
 Filesystem operations use native host paths; see the [filesystem contract](../libs/portable-fs/README.md).
 TCP exposes asynchronous client sockets; see the [TCP contract](../libs/portable-tcp/README.md).
 TLS exposes verified client connections; see the [TLS contract](../libs/portable-tls/README.md).
-Define HTTP encoding, parsing, and request contracts above these transports before implementation.
+HTTP exposes bounded asynchronous requests; see the [HTTP contract](../libs/portable-http/README.md).
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

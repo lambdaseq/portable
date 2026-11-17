@@ -41,11 +41,13 @@ jar tf libs/portable-paths/target/portable-paths-0.1.0.jar
 jar tf libs/portable-fs/target/portable-fs-0.1.0.jar
 jar tf libs/portable-tcp/target/portable-tcp-0.1.0.jar
 jar tf libs/portable-tls/target/portable-tls-0.1.0.jar
+jar tf libs/portable-http/target/portable-http-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
 Shared contracts run on JVM Clojure, Babashka, Node, and headless Chrome.
 Browser environment, filesystem, TCP, and TLS operations are verified to fail explicitly.
+Browser HTTP uses Fetch; process-runtime HTTP uses portable's HTTP/1.1 stack over TCP and TLS.
 
 ### Troubleshooting
 
@@ -65,6 +67,7 @@ Browser environment, filesystem, TCP, and TLS operations are verified to fail ex
 | `libs/portable-fs/`             | Synchronous filesystem access, `lambdaseq/portable-fs`        |
 | `libs/portable-tcp/`            | Asynchronous TCP clients, `lambdaseq/portable-tcp`            |
 | `libs/portable-tls/`            | Verified TLS over TCP, `lambdaseq/portable-tls`               |
+| `libs/portable-http/`           | Native HTTP/1.1 and browser Fetch, `lambdaseq/portable-http`   |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -92,6 +95,8 @@ For TCP clients alone, use `lambdaseq/portable-tcp` with `:local/root "../portab
 See the [TCP callbacks and connection lifecycle](libs/portable-tcp/README.md).
 For TLS clients alone, use `lambdaseq/portable-tls` with `:local/root "../portable/libs/portable-tls"`.
 See the [TLS verification and runtime limits](libs/portable-tls/README.md).
+For HTTP requests alone, use `lambdaseq/portable-http` with `:local/root "../portable/libs/portable-http"`.
+See the [HTTP API and Fetch limitations](libs/portable-http/README.md).
 
 ## Portability contract
 

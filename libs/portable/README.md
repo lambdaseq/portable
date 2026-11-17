@@ -13,6 +13,7 @@ Coordinates are `lambdaseq/portable-clock`, `lambdaseq/portable-bytes`, `lambdas
 Use `lambdaseq/portable-fs` for filesystem access; it includes `portable-bytes` for its byte and text contract.
 Use `lambdaseq/portable-tcp` for asynchronous sockets; it includes `portable-bytes` for byte vectors.
 Use `lambdaseq/portable-tls` for verified TLS clients over `portable-tcp`.
+Use `lambdaseq/portable-http` for HTTP requests over portable transports or browser Fetch.
 
 Run commands from the workspace root:
 
