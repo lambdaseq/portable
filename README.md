@@ -37,6 +37,7 @@ jar tf libs/portable/target/portable-0.1.0.jar
 jar tf libs/portable-clock/target/portable-clock-0.1.0.jar
 jar tf libs/portable-bytes/target/portable-bytes-0.1.0.jar
 jar tf libs/portable-env/target/portable-env-0.1.0.jar
+jar tf libs/portable-paths/target/portable-paths-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
@@ -57,6 +58,7 @@ Browser environment lookups are verified to fail explicitly.
 | `libs/portable-clock/`          | Clock API and shared tests, `lambdaseq/portable-clock`         |
 | `libs/portable-bytes/`          | UTF-8, Base64, and hex, `lambdaseq/portable-bytes`              |
 | `libs/portable-env/`            | Environment lookup, `lambdaseq/portable-env`                  |
+| `libs/portable-paths/`          | POSIX and Windows paths, `lambdaseq/portable-paths`            |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -76,6 +78,8 @@ For byte conversions alone, use `lambdaseq/portable-bytes` with `:local/root "..
 See the [byte representation and conversion rules](libs/portable-bytes/README.md).
 For environment lookup alone, use `lambdaseq/portable-env` with `:local/root "../portable/libs/portable-env"`.
 See the [environment lookup contract](libs/portable-env/README.md).
+For lexical paths alone, use `lambdaseq/portable-paths` with `:local/root "../portable/libs/portable-paths"`.
+See the [path styles and operations](libs/portable-paths/README.md).
 
 ## Portability contract
 

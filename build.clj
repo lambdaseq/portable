@@ -45,7 +45,14 @@
                               "PORTABLE_ENV_TEST_NUMBER" "00123"
                               "PORTABLE_ENV_TEST_FALSE" "false"}
                    :lib lambdaseq/portable-env
-                   :description "Portable environment variable lookup."}})
+                   :description "Portable environment variable lookup."}
+    :portable-paths {:kind :lib
+                     :dir "libs/portable-paths"
+                     :platform :cljc
+                     :test-runner portable.paths-test-runner
+                     :browser-tests "target/browser.html"
+                     :lib lambdaseq/portable-paths
+                     :description "Lexical POSIX and Windows path operations."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
