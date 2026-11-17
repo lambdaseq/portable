@@ -40,11 +40,12 @@ jar tf libs/portable-env/target/portable-env-0.1.0.jar
 jar tf libs/portable-paths/target/portable-paths-0.1.0.jar
 jar tf libs/portable-fs/target/portable-fs-0.1.0.jar
 jar tf libs/portable-tcp/target/portable-tcp-0.1.0.jar
+jar tf libs/portable-tls/target/portable-tls-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
 Shared contracts run on JVM Clojure, Babashka, Node, and headless Chrome.
-Browser environment, filesystem, and TCP operations are verified to fail explicitly.
+Browser environment, filesystem, TCP, and TLS operations are verified to fail explicitly.
 
 ### Troubleshooting
 
@@ -63,6 +64,7 @@ Browser environment, filesystem, and TCP operations are verified to fail explici
 | `libs/portable-paths/`          | POSIX and Windows paths, `lambdaseq/portable-paths`            |
 | `libs/portable-fs/`             | Synchronous filesystem access, `lambdaseq/portable-fs`        |
 | `libs/portable-tcp/`            | Asynchronous TCP clients, `lambdaseq/portable-tcp`            |
+| `libs/portable-tls/`            | Verified TLS over TCP, `lambdaseq/portable-tls`               |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -88,6 +90,8 @@ For filesystem access alone, use `lambdaseq/portable-fs` with `:local/root "../p
 See the [filesystem operations and browser behavior](libs/portable-fs/README.md).
 For TCP clients alone, use `lambdaseq/portable-tcp` with `:local/root "../portable/libs/portable-tcp"`.
 See the [TCP callbacks and connection lifecycle](libs/portable-tcp/README.md).
+For TLS clients alone, use `lambdaseq/portable-tls` with `:local/root "../portable/libs/portable-tls"`.
+See the [TLS verification and runtime limits](libs/portable-tls/README.md).
 
 ## Portability contract
 

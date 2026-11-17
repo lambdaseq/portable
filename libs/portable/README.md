@@ -8,10 +8,11 @@ It contains dependency metadata only. Require each family's namespace directly:
 (clock/now-ms)
 ```
 
-Depend directly on a family when you need only clocks, bytes, environment lookup, paths, filesystem access, or TCP clients.
+Depend directly on a family when you need only its APIs.
 Coordinates are `lambdaseq/portable-clock`, `lambdaseq/portable-bytes`, `lambdaseq/portable-env`, and `lambdaseq/portable-paths`.
 Use `lambdaseq/portable-fs` for filesystem access; it includes `portable-bytes` for its byte and text contract.
 Use `lambdaseq/portable-tcp` for asynchronous sockets; it includes `portable-bytes` for byte vectors.
+Use `lambdaseq/portable-tls` for verified TLS clients over `portable-tcp`.
 
 Run commands from the workspace root:
 

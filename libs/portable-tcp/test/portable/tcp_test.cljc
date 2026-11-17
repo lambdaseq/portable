@@ -142,9 +142,10 @@
          (is (nil? (internal/reserve! connection :write :portable.tcp/write! {:timeout-ms 1000} record!)))
          (internal/terminate! connection :closed nil)
          (internal/terminate! connection :closed nil)
-         (internal/complete! connection :connect connect-token nil connection)
+         (internal/complete! connection :connect connect-token nil connection {:late-result true})
          (internal/complete! connection :write (:token write) nil 1)
-         (is (= :closed (:status @(:state connection)))))))))
+         (is (= :closed (:status @(:state connection))))
+         (is (not (contains? @(:state connection) :late-result))))))))
 
 (deftest pending-operation-deadline-contract
   (run-contract!

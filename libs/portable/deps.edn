@@ -4,7 +4,8 @@
         lambdaseq/portable-env {:local/root "../portable-env"}
         lambdaseq/portable-paths {:local/root "../portable-paths"}
         lambdaseq/portable-fs {:local/root "../portable-fs"}
-        lambdaseq/portable-tcp {:local/root "../portable-tcp"}}
+        lambdaseq/portable-tcp {:local/root "../portable-tcp"}
+        lambdaseq/portable-tls {:local/root "../portable-tls"}}
  :aliases
  {:repl
   {:extra-deps {nrepl/nrepl {:mvn/version "1.3.0"}}

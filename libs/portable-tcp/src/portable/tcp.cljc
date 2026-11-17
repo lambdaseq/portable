@@ -6,20 +6,6 @@
             #?(:clj [portable.tcp.jvm :as backend]
                :cljs [portable.tcp.node :as backend])))
 
-(defn- validate-callback [operation callback]
-  (when-not (fn? callback) (internal/throw-invalid-input operation :expected-callback)))
-
-(defn- validate-options [operation options allowed]
-  (when-not (map? options) (internal/throw-invalid-input operation :expected-options-map))
-  (when (some #(not (contains? allowed %)) (keys options))
-    (internal/throw-invalid-input operation :unknown-option)))
-
-(defn- parse-timeout [operation options]
-  (let [timeout (:timeout-ms options 10000)]
-    (when-not (and (integer? timeout) (<= 1 timeout 2147483647))
-      (internal/throw-invalid-input operation :invalid-timeout))
-    (assoc options :timeout-ms timeout)))
-
 (defn- require-supported [operation]
   (when-not #?(:clj true :cljs (backend/supported?) :default false)
     (throw (ex-info "TCP sockets are unsupported on this runtime."
@@ -29,9 +15,9 @@
   "Connect asynchronously. Return an opaque handle immediately; callback receives (error connection).
   Options: :host, :port, and :timeout-ms (default 10000). Close the handle to cancel."
   [options callback]
-  (validate-options :portable.tcp/connect! options #{:host :port :timeout-ms})
-  (validate-callback :portable.tcp/connect! callback)
-  (let [{:keys [host port] :as parsed} (parse-timeout :portable.tcp/connect! options)]
+  (internal/validate-options :portable.tcp/connect! options #{:host :port :timeout-ms})
+  (internal/validate-callback :portable.tcp/connect! callback)
+  (let [{:keys [host port] :as parsed} (internal/parse-timeout :portable.tcp/connect! options)]
     (when-not (and (string? host) (not (str/blank? host)) (not (str/includes? host "\u0000")))
       (internal/throw-invalid-input :portable.tcp/connect! :invalid-host))
     (when-not (and (integer? port) (<= 1 port 65535))
@@ -44,9 +30,9 @@
   Nil means EOF. One read may be pending. A timeout closes the connection."
   ([connection callback] (read! connection {} callback))
   ([connection options callback]
-   (validate-options :portable.tcp/read! options #{:max-bytes :timeout-ms})
-   (validate-callback :portable.tcp/read! callback)
-   (let [parsed (assoc (parse-timeout :portable.tcp/read! options) :max-bytes (:max-bytes options 65536))
+   (internal/validate-options :portable.tcp/read! options #{:max-bytes :timeout-ms})
+   (internal/validate-callback :portable.tcp/read! callback)
+   (let [parsed (assoc (internal/parse-timeout :portable.tcp/read! options) :max-bytes (:max-bytes options 65536))
          limit (:max-bytes parsed)]
      (when-not (and (integer? limit) (<= 1 limit 1048576))
        (internal/throw-invalid-input :portable.tcp/read! :invalid-read-size))
@@ -59,12 +45,12 @@
   One write may be pending. Completion means local acceptance, not peer receipt."
   ([connection data callback] (write! connection data {} callback))
   ([connection data options callback]
-   (validate-options :portable.tcp/write! options #{:timeout-ms})
-   (validate-callback :portable.tcp/write! callback)
+   (internal/validate-options :portable.tcp/write! options #{:timeout-ms})
+   (internal/validate-callback :portable.tcp/write! callback)
    (when-not (bytes/byte-vector? data)
      (internal/throw-invalid-input :portable.tcp/write! :expected-byte-vector))
    (when (> (count data) 1048576) (internal/throw-invalid-input :portable.tcp/write! :write-too-large))
-   (let [parsed (parse-timeout :portable.tcp/write! options)]
+   (let [parsed (internal/parse-timeout :portable.tcp/write! options)]
      (require-supported :portable.tcp/write!)
      (internal/require-connection :portable.tcp/write! connection)
      (backend/write! connection data parsed callback))))
@@ -74,9 +60,9 @@
   Uses the write slot; wait for prior writes before calling."
   ([connection callback] (shutdown-output! connection {} callback))
   ([connection options callback]
-   (validate-options :portable.tcp/shutdown-output! options #{:timeout-ms})
-   (validate-callback :portable.tcp/shutdown-output! callback)
-   (let [parsed (parse-timeout :portable.tcp/shutdown-output! options)]
+   (internal/validate-options :portable.tcp/shutdown-output! options #{:timeout-ms})
+   (internal/validate-callback :portable.tcp/shutdown-output! callback)
+   (let [parsed (internal/parse-timeout :portable.tcp/shutdown-output! options)]
      (require-supported :portable.tcp/shutdown-output!)
      (internal/require-connection :portable.tcp/shutdown-output! connection)
      (backend/shutdown-output! connection parsed callback))))

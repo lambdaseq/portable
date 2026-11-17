@@ -66,7 +66,14 @@
                    :test-runner portable.tcp-test-runner
                    :browser-tests "target/browser.html"
                    :lib lambdaseq/portable-tcp
-                   :description "Asynchronous portable TCP client sockets."}})
+                   :description "Asynchronous portable TCP client sockets."}
+    :portable-tls {:kind :lib
+                   :dir "libs/portable-tls"
+                   :platform :cljc
+                   :test-runner portable.tls-test-runner
+                   :browser-tests "target/browser.html"
+                   :lib lambdaseq/portable-tls
+                   :description "Verified asynchronous TLS clients over portable TCP."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
