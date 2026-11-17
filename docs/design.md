@@ -5,7 +5,11 @@
 portable gives library and application authors one API for operations whose host implementations differ.
 Consumer code depends on `portable.*` namespaces. Host selection, interop, and reader conditionals belong inside portable.
 
-The repository contains a `.cljc` library scaffold. No platform API family or runtime support guarantee is established by that scaffold.
+Each API family lives in its own library and owns its public namespaces and shared contracts.
+`lambdaseq/portable-clock` owns `portable.clock`.
+`lambdaseq/portable-bytes` owns `portable.bytes` and uses immutable unsigned byte vectors across runtimes.
+The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
+Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
 ## Runtime targets
 
@@ -19,7 +23,10 @@ Shared source is therefore a design option across these targets, subject to each
 [jank](https://jank-lang.org/) provides native Clojure with C++ interop and a `:jank` reader conditional.
 jank-specific interop stays behind the public API and needs its own runner and contract checks.
 
-JVM Clojure and Babashka have scaffold load checks. Other targets need runners before compatibility can be claimed.
+Clock and byte contracts run on JVM Clojure, Babashka, and ClojureScript in Node and headless Chrome.
+The browser runner uses the same JavaScript contracts, including asynchronous elapsed-time checks.
+CLR, Dart, and jank remain targets without verified adapters.
+Families share development test support without runtime dependencies on each other.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -35,7 +42,7 @@ Prefer direct implementation branches before introducing a protocol or backend r
 
 ## Adding an API
 
-1. Choose one API family and define its consumer use cases.
+1. Define the family's use cases, create its library, and add it to the umbrella and build registry.
 2. Write shared behavior tests, including errors and unsupported operations.
 3. Implement host adapters behind the same public namespace.
 4. Run the shared contract on each claimed target, including browser and server contexts where relevant.
@@ -43,6 +50,7 @@ Prefer direct implementation branches before introducing a protocol or backend r
 
 ## Decisions to make
 
-Choose the first API family and its minimum useful operation set.
-Candidates include clocks, environment access, binary/text conversion, paths, filesystem access, and networking.
+Clocks expose `now-ms` and `monotonic-ms`; see the [clock contract](../libs/portable-clock/README.md).
+Bytes expose UTF-8, Base64, and hex conversions; see the [byte contract](../libs/portable-bytes/README.md).
+Choose later families independently, including environment access, paths, filesystem access, and networking.
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

@@ -1,16 +1,22 @@
-# portable library
+# portable umbrella
 
-Unified host APIs for Clojure library and application builders.
-Public namespaces live under `portable.*` in `.cljc` files.
+`lambdaseq/portable` depends on every released portable API family.
+It contains dependency metadata only. Require each family's namespace directly:
+
+```clojure
+(require '[portable.clock :as clock])
+(clock/now-ms)
+```
+
+Depend on `lambdaseq/portable-clock` or `lambdaseq/portable-bytes` directly when you need only that family.
 
 Run commands from the workspace root:
 
 ```sh
-clojure -T:build test :modules :portable
+clojure -T:build test :modules :portable-clock
 clojure -T:build jar :modules :portable
 clojure -T:build repl :modules :portable
 ```
 
-The coordinate is `lambdaseq/portable`.
-The test directory is reserved for shared API contracts; runtime APIs are not implemented by the scaffold.
+Families share a release version. Local dependency roots become Maven versions during packaging.
 See [the workspace README](../../README.md) and [design contract](../../docs/design.md).

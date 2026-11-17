@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>portable contracts</title>
+</head>
+<body data-test-status="pending">
+  <pre id="test-results"></pre>
+  <script>
+    function reportError(event) {
+      document.body.dataset.testStatus = "failed";
+      document.getElementById("test-results").textContent += String(event.message || event.reason);
+    }
+    window.addEventListener("error", reportError);
+    window.addEventListener("unhandledrejection", reportError);
+  </script>
+  <script src="../target/browser-tests.js"></script>
+</body>
+</html>

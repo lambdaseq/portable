@@ -1,80 +1,92 @@
 # portable
 
 A library project for unified APIs across Clojure implementations.
-Library and app builders use shared `portable.*` namespaces while portable handles host APIs and reader conditionals internally.
+Library and app builders use shared `portable.*` namespaces while portable handles host APIs and reader conditionals
+internally.
 
-The workspace contains the library scaffold and design contract. Runtime APIs are defined and implemented one concern at a time.
+Each API family is a separate library. `lambdaseq/portable` includes all families as dependencies.
 
 ## Quickstart
 
 ### Prerequisites
 
 Clojure CLI and JDK 17+ are required for the JVM build.
-Babashka can load the shared source directly.
+The full contract suite also requires Babashka, Node.js 18+, and Chrome or Chromium.
 
 ### Setup
 
 ```sh
-cd ~/IdeaProjects/portable
 clojure -P -M:dev
 ```
 
 ### Run
 
 ```sh
-clojure -M:dev -e "(require 'portable.core) (println :portable/ready)"
+clojure -M:dev -e "(require '[portable.clock :as clock]) (println (clock/now-ms))"
 ```
 
 For an interactive workspace REPL, run `clojure -M:dev`.
 
 ### Verify it worked
 
-The load check prints `:portable/ready`.
+The load check prints integer Unix epoch milliseconds.
 
 ```sh
 clojure -T:build ci
 jar tf libs/portable/target/portable-0.1.0.jar
+jar tf libs/portable-clock/target/portable-clock-0.1.0.jar
+jar tf libs/portable-bytes/target/portable-bytes-0.1.0.jar
 ```
 
-The jar contains `portable/core.cljc`. The test harness has no API contract tests until APIs are implemented.
+The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
+Shared clock and byte contracts run on JVM Clojure, Babashka, Node, and headless Chrome.
 
 ### Troubleshooting
 
-- Run build commands from this workspace root and select the `:portable` module when needed.
+- Run build commands from this workspace root. Select `:portable-clock` to test or build clocks alone.
+- Set `CHROME_BIN` to the browser executable if automatic detection fails. See the [browser runner](libs/portable-clock/README.md#browser-runner).
 - CLR, Dart, and jank need their own compiler and runtime checks; the JVM build does not verify those targets.
 
 ## Workspace
 
-| Path | Purpose |
-| --- | --- |
-| `libs/portable/src/portable/` | Public `.cljc` API namespaces |
-| `libs/portable/test/portable/` | Shared behavior tests for implemented APIs |
-| `libs/portable/resources/` | Library resources |
-| `build.clj` | Self-contained build functions and module registration |
-| `docs/design.md` | Runtime targets, API boundaries, and implementation criteria |
+| Path                           | Purpose                                                      |
+|--------------------------------|--------------------------------------------------------------|
+| `libs/portable/`                | Dependency-only umbrella, `lambdaseq/portable`                |
+| `libs/portable-clock/`          | Clock API and shared tests, `lambdaseq/portable-clock`         |
+| `libs/portable-bytes/`          | UTF-8, Base64, and hex, `lambdaseq/portable-bytes`              |
+| `test-support/`                | Shared test reporting and browser page; development only     |
+| `build.clj`                    | Self-contained build functions and module registration       |
+| `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
 
 Build or test with `clojure -T:build build` and `clojure -T:build test`.
-The Maven coordinate is `lambdaseq/portable`; consumer namespaces use `portable.*`.
+Add the umbrella for all families, or depend on one family directly.
+Consumer namespaces stay the same in either case.
 For a sibling local project, use:
 
 ```clojure
 {:deps {lambdaseq/portable {:local/root "../portable/libs/portable"}}}
 ```
 
+For clocks alone, use `lambdaseq/portable-clock` with `:local/root "../portable/libs/portable-clock"`.
+See the [clock API and runtime requirements](libs/portable-clock/README.md).
+For byte conversions alone, use `lambdaseq/portable-bytes` with `:local/root "../portable/libs/portable-bytes"`.
+See the [byte representation and conversion rules](libs/portable-bytes/README.md).
+
 ## Portability contract
 
 Consumers should not branch on the host runtime to use a supported portable API.
 Each API defines its argument shapes, return values, error data, and synchronous or asynchronous behavior.
-Host-specific code stays inside portable. Unsupported operations must fail explicitly rather than silently change semantics.
+Host-specific code stays inside portable. Unsupported operations must fail explicitly rather than silently change
+semantics.
 
-| Target | Scaffold verification |
-| --- | --- |
-| JVM Clojure | Namespace loading and source jar build |
-| Babashka | Namespace loading |
-| ClojureScript, Node and browser | Target; runner and contract suite not configured |
-| ClojureCLR | Target; compiler and contract suite not configured |
-| ClojureDart | Target; compiler and contract suite not configured |
-| jank | Target; compiler and contract suite not configured |
+| Target                          | Clock and byte verification                        |
+|---------------------------------|----------------------------------------------------|
+| JVM Clojure                     | Shared contract suite and source jar build          |
+| Babashka                        | Shared contract suite                               |
+| ClojureScript, Node             | Shared contract suite                               |
+| ClojureScript, browser          | Shared contract suite in headless Chrome            |
+| ClojureCLR                      | Target; compiler and contract suite not configured |
+| ClojureDart                     | Target; compiler and contract suite not configured |
+| jank                            | Target; compiler and contract suite not configured |
 
-These checks establish a scaffold, not runtime API compatibility.
 See [the design contract](docs/design.md) before adding an API or claiming support for a target.

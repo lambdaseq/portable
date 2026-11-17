@@ -2,7 +2,11 @@
   (:refer-clojure :exclude [test])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.tools.build.api :as b]))
+            [clojure.tools.build.api :as b])
+  (:import [java.io File]
+           [java.nio.file Files]
+           [java.nio.file.attribute FileAttribute]
+           [java.util.concurrent TimeUnit]))
 
 (def project
   {:version "0.1.0"
@@ -14,7 +18,23 @@
   '{:portable {:kind :lib
                :dir "libs/portable"
                :platform :clj
-               :lib lambdaseq/portable}})
+               :lib lambdaseq/portable
+               :test? false
+               :description "All portable API families."}
+    :portable-clock {:kind :lib
+                     :dir "libs/portable-clock"
+                     :platform :cljc
+                     :test-runner portable.clock-test-runner
+                     :browser-tests "target/browser.html"
+                     :lib lambdaseq/portable-clock
+                     :description "Portable wall and monotonic clocks."}
+    :portable-bytes {:kind :lib
+                     :dir "libs/portable-bytes"
+                     :platform :cljc
+                     :test-runner portable.bytes-test-runner
+                     :browser-tests "target/browser.html"
+                     :lib lambdaseq/portable-bytes
+                     :description "Portable UTF-8, Base64, and hex conversion."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
@@ -83,7 +103,8 @@
 (defn- build-artifact [id module opts uber?]
   (let [directory (resolve-module-directory module)]
     (b/with-project-root directory
-      (let [basis (b/create-basis {:project "deps.edn"})
+      ;; Publish module dependencies without CLI defaults or user overrides.
+      (let [basis (b/create-basis {:project "deps.edn" :root nil :user nil})
             registered (into {} (map (fn [[_ candidate]]
                                        [(resolve-module-directory candidate) candidate])) modules)
             paths (filterv #(.isDirectory (io/file directory %)) (:paths basis))
@@ -108,13 +129,64 @@
     (b/with-project-root (resolve-module-directory module) (b/delete {:path "target"})))
   opts)
 
-(defn test "Run selected module test aliases. CLJS tests execute in Node." [opts]
-  (doseq [[id module] (select-modules opts (constantly true))]
+(defn- resolve-browser []
+  (let [configured (System/getenv "CHROME_BIN")
+        candidates (if configured
+                     [configured]
+                     (cons "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+                           (for [directory (str/split (or (System/getenv "PATH") "")
+                                                     (re-pattern File/pathSeparator))
+                                 executable ["google-chrome" "google-chrome-stable" "chromium" "chromium-browser" "chrome.exe"]]
+                             (str (io/file directory executable)))))]
+    (or (some #(let [file (io/file %)]
+                 (when (and (.isFile file) (.canExecute file)) %)) candidates)
+        (throw (ex-info "Chrome or Chromium is required. Set CHROME_BIN to its executable path."
+                        {:chrome-bin configured})))))
+
+(defn- run-browser-tests [directory page]
+  (let [browser (resolve-browser)
+        profile (Files/createTempDirectory "portable-browser-" (make-array FileAttribute 0))
+        output (io/file directory "target/browser-results.html")
+        errors (io/file directory "target/browser-stderr.log")]
+    (try
+      (let [command [browser "--headless" "--disable-gpu" "--no-first-run" "--no-default-browser-check"
+                     (str "--user-data-dir=" profile)
+                     "--dump-dom" "--virtual-time-budget=1000" "--timeout=10000"
+                     (str (.toURI (io/file directory page)))]
+            process (-> (ProcessBuilder. ^java.util.List command)
+                        (.redirectOutput output)
+                        (.redirectError errors)
+                        (.start))]
+        (when-not (.waitFor process 30 TimeUnit/SECONDS)
+          (.destroyForcibly process)
+          (.waitFor process 5 TimeUnit/SECONDS)
+          (throw (ex-info "Browser tests timed out." {:output (str output) :errors (str errors)})))
+        (let [document (slurp output)]
+          (when-not (and (zero? (.exitValue process))
+                         (str/includes? document "data-test-status=\"passed\""))
+            (throw (ex-info "Browser contract tests failed or did not finish."
+                            {:exit (.exitValue process) :output (str output)
+                             :errors (str errors) :document document})))
+          (println "Browser contracts passed. Results:" (str output))))
+      (finally
+        (b/delete {:path (str profile)})))))
+
+(defn test "Run shared contracts on JVM, Babashka, Node, and headless Chrome." [opts]
+  (doseq [[id module] (select-modules opts (constantly true))
+          :when (not= false (:test? module))]
     (let [directory (resolve-module-directory module)]
       (println "Testing" (name id))
       (run-command directory ["clojure" "-M:test"])
-      (when (= :cljs (:platform module))
-        (run-command directory ["node" "target/tests.js"]))))
+      (when (= :cljc (:platform module))
+        (run-command directory ["bb" "--classpath" (str/join File/pathSeparator ["src" "test" "../../test-support"])
+                                "-m" (str (:test-runner module))])
+        (run-command directory ["clojure" "-M:test-cljs"]))
+      (when (#{:cljs :cljc} (:platform module))
+        (run-command directory ["node" "target/tests.js"]))
+      (when-let [page (:browser-tests module)]
+        (run-command directory ["clojure" "-M:test-browser"])
+        (b/copy-file {:src "test-support/browser.html" :target (str (io/file directory page))})
+        (run-browser-tests directory page))))
   opts)
 
 (defn jar "Build source jars for libraries. Accepts :modules and :version." [opts]
