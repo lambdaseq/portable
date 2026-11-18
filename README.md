@@ -74,7 +74,7 @@ Gzip and zlib-wrapped DEFLATE use bounded asynchronous byte-vector operations on
 | `libs/portable-env/`            | Environment lookup, `lambdaseq/portable-env`                  |
 | `libs/portable-paths/`          | POSIX and Windows paths, `lambdaseq/portable-paths`            |
 | `libs/portable-fs/`             | Synchronous filesystem access, `lambdaseq/portable-fs`        |
-| `libs/portable-tcp/`            | Asynchronous TCP clients, `lambdaseq/portable-tcp`            |
+| `libs/portable-tcp/`            | TCP connections and listeners, `lambdaseq/portable-tcp`            |
 | `libs/portable-tls/`            | Verified TLS over TCP, `lambdaseq/portable-tls`               |
 | `libs/portable-http/`           | Native HTTP/1.1 and browser Fetch, `lambdaseq/portable-http`   |
 | `libs/portable-udp/`            | Asynchronous IPv4 datagrams, `lambdaseq/portable-udp`         |
@@ -105,8 +105,8 @@ For lexical paths alone, use `lambdaseq/portable-paths` with `:local/root "../po
 See the [path styles and operations](libs/portable-paths/README.md).
 For filesystem access alone, use `lambdaseq/portable-fs` with `:local/root "../portable/libs/portable-fs"`.
 See the [filesystem operations and browser behavior](libs/portable-fs/README.md).
-For TCP clients alone, use `lambdaseq/portable-tcp` with `:local/root "../portable/libs/portable-tcp"`.
-See the [TCP callbacks and connection lifecycle](libs/portable-tcp/README.md).
+For TCP alone, use `lambdaseq/portable-tcp` with `:local/root "../portable/libs/portable-tcp"`.
+See the [TCP listeners, callbacks, and connection lifecycle](libs/portable-tcp/README.md).
 For TLS clients alone, use `lambdaseq/portable-tls` with `:local/root "../portable/libs/portable-tls"`.
 See the [TLS verification and runtime limits](libs/portable-tls/README.md).
 For HTTP requests alone, use `lambdaseq/portable-http` with `:local/root "../portable/libs/portable-http"`.

@@ -40,7 +40,7 @@
                          (scenario handle finish!))))]
          (reset! connection handle))))))
 
-(defn- read-all! [connection limit result done]
+(defn read-all! [connection limit result done]
   (tcp/read! connection {:max-bytes limit :timeout-ms 1000}
              (fn [error chunk]
                (is (nil? error))

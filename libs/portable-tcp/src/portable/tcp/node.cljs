@@ -71,3 +71,46 @@
     (.end (internal/get-native connection)
           (fn [] (internal/complete! connection :write (:token pending) nil nil))))
   nil)
+
+(defn- pump-accept! [listener queue]
+  (when (internal/get-pending listener :read)
+    (when-let [connection (first @queue)]
+      (swap! queue #(vec (rest %)))
+      (if (= :closed (:status @(:state connection)))
+        (pump-accept! listener queue)
+        (internal/deliver-accepted! listener connection)))))
+
+(defn listen! [options callback]
+  (let [server (.createServer NET #js {:allowHalfOpen true :pauseOnConnect true})
+        queue (atom [])
+        abort! (fn []
+                 (try (.close server) (catch :default _ nil))
+                 (doseq [connection @queue] (internal/terminate! connection :closed nil))
+                 (reset! queue []))
+        listener (assoc (internal/create-listener! server abort! options callback) :accept-queue queue)
+        pending (internal/get-pending listener :connect)]
+    (.on server "error" #(internal/terminate! listener (internal/get-error-reason %) %))
+    (.on server "connection"
+         (fn [socket]
+           (let [base (internal/create-accepted! socket #(.destroy socket))
+                 connection (assoc base :detach! (attach-events! base socket))]
+             (.setNoDelay socket true)
+             (if (or (= :closed (:status @(:state listener))) (>= (count @queue) (:backlog options)))
+               (internal/terminate! connection :closed nil)
+               (do (swap! queue conj connection) (pump-accept! listener queue))))))
+    (.once server "listening"
+           (fn []
+             (if (= :closed (:status @(:state listener)))
+               (abort!)
+               (let [address (.address server)]
+                 (reset! (:bound-address listener) {:host (.-address address) :port (.-port address)})
+                 (internal/complete! listener :connect (:token pending) nil listener)))))
+    (when pending
+      (try (.listen server #js {:host (:host options) :port (:port options) :backlog (:backlog options)})
+           (catch :default error (internal/terminate! listener (internal/get-error-reason error) error))))
+    listener))
+
+(defn accept! [listener options callback]
+  (when (internal/reserve! listener :read :portable.tcp/accept! options callback)
+    (pump-accept! listener (:accept-queue listener)))
+  nil)

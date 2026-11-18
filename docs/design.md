@@ -64,7 +64,9 @@ Its native engines sit below HTTP content decoding and remain independent of net
 ## Networking layers
 
 Build network protocols from native socket transports upward.
-`portable-tcp` defines asynchronous connection lifecycle, byte reads and writes, deadlines, and output shutdown.
+`portable-tcp` defines asynchronous connection and listener lifecycle, byte reads and writes, deadlines, and output shutdown.
+TCP listeners bind numeric IPv4 addresses and deliver ordinary connections through explicit asynchronous accepts.
+Listener closure releases pending work and undelivered connections; delivered connections remain caller-owned.
 TCP sockets use opaque resource handles; payloads and error data remain portable values.
 TLS uses host security implementations above TCP. HTTP protocol encoding and parsing belong to portable itself.
 TLS transfers ownership of a connected TCP socket and shares bounded I/O and deadline handling.
@@ -101,7 +103,7 @@ Bytes expose UTF-8, Base64, and hex conversions; see the [byte contract](../libs
 Environment lookup exposes `get-env`; see the [environment contract](../libs/portable-env/README.md).
 Paths expose pure lexical operations; see the [path contract](../libs/portable-paths/README.md).
 Filesystem operations use native host paths; see the [filesystem contract](../libs/portable-fs/README.md).
-TCP exposes asynchronous client sockets; see the [TCP contract](../libs/portable-tcp/README.md).
+TCP exposes asynchronous client connections, listening, and accepting; see the [TCP contract](../libs/portable-tcp/README.md).
 TLS exposes verified client connections; see the [TLS contract](../libs/portable-tls/README.md).
 HTTP exposes bounded asynchronous requests; see the [HTTP contract](../libs/portable-http/README.md).
 UDP exposes asynchronous IPv4 datagrams; see the [UDP contract](../libs/portable-udp/README.md).

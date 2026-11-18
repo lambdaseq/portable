@@ -1,7 +1,7 @@
 (ns portable.tcp.jvm
   "JVM and Babashka socket adapter."
   (:require [portable.tcp.internal :as internal])
-  (:import [java.net InetSocketAddress Socket]))
+  (:import [java.net InetAddress InetSocketAddress ServerSocket Socket]))
 
 (defn- start-operation! [connection slot pending perform!]
   (internal/dispatch!
@@ -51,4 +51,33 @@
   (when-let [pending (internal/reserve! connection :write (internal/get-operation connection :shutdown-output!) options callback)]
     (start-operation! connection :write pending
                       (fn [] (.shutdownOutput ^Socket (internal/get-native connection)) nil)))
+  nil)
+
+(defn listen! [options callback]
+  (let [socket (ServerSocket.)
+        listener (internal/create-listener! socket #(.close socket) options callback)
+        pending (internal/get-pending listener :connect)]
+    (when pending
+      (start-operation!
+       listener :connect pending
+       (fn []
+         (.bind socket (InetSocketAddress. ^String (:host options) (int (:port options))) (int (:backlog options)))
+         (reset! (:bound-address listener)
+                 {:host (.getHostAddress ^InetAddress (.getInetAddress socket)) :port (.getLocalPort socket)})
+         listener)))
+    listener))
+
+(defn accept! [listener options callback]
+  (when-let [pending (internal/reserve! listener :read :portable.tcp/accept! options callback)]
+    (internal/dispatch!
+     (fn []
+       (let [result (try
+                      (let [socket (.accept ^ServerSocket (internal/get-native listener))
+                            connection (internal/create-accepted! socket #(.close socket))]
+                        (try (.setTcpNoDelay socket true) {:connection connection}
+                             (catch Exception error (internal/terminate! connection :closed nil) {:error error})))
+                      (catch Exception error {:error error}))]
+         (if-let [error (:error result)]
+           (internal/terminate! listener (internal/get-error-reason error) error :read (:token pending))
+           (internal/deliver-accepted! listener (:connection result)))))))
   nil)

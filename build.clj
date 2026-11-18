@@ -66,7 +66,7 @@
                    :test-runner portable.tcp-test-runner
                    :browser-tests "target/browser.html"
                    :lib lambdaseq/portable-tcp
-                   :description "Asynchronous portable TCP client sockets."}
+                   :description "Asynchronous portable TCP connections and IPv4 listeners."}
     :portable-tls {:kind :lib
                    :dir "libs/portable-tls"
                    :platform :cljc

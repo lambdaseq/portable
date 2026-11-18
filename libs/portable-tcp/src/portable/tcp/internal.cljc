@@ -47,7 +47,8 @@
 
 (defn require-connection [operation connection]
   (when-not (and (map? connection) (identical? CONNECTION_TAG (::tag connection))
-                 (= (namespace operation) (:operation-ns connection "portable.tcp")))
+                 (= (namespace operation) (:operation-ns connection "portable.tcp"))
+                 (not= :listener (:resource-kind connection)))
     (throw-invalid-input operation :invalid-connection)))
 
 (defn get-pending [connection slot]
@@ -99,13 +100,35 @@
 (defn create-connection!
   ([native abort! options callback] (create-connection! native abort! options callback {}))
   ([native abort! options callback configuration]
-   (let [pending (make-pending (get-operation configuration :connect!) options callback)
+   (let [pending (make-pending (get-operation configuration (:initial-operation configuration :connect!)) options callback)
          connection (merge configuration
                            {::tag CONNECTION_TAG :native native :abort! abort!
                             :state (atom {:status :connecting :connect pending :read nil :write nil
                                           :eof? false :output-closed? false})})]
      (arm-timeout! connection :connect pending (:timeout-ms options))
      connection)))
+
+(defn create-listener! [native abort! options callback]
+  (assoc (create-connection! native abort! options callback
+                             {:resource-kind :listener :initial-operation :listen!})
+         :bound-address (atom nil)))
+
+(defn listener? [handle]
+  (and (map? handle) (identical? CONNECTION_TAG (::tag handle)) (= :listener (:resource-kind handle))))
+
+(defn require-listener [operation listener]
+  (when-not (listener? listener) (throw-invalid-input operation :invalid-listener)))
+
+(defn create-accepted! [native abort!]
+  {::tag CONNECTION_TAG :native native :abort! abort!
+   :state (atom {:status :open :connect nil :read nil :write nil :eof? false :output-closed? false})})
+
+(defn deliver-accepted! [listener connection]
+  (let [[before _] (swap-vals! (:state listener) #(if (:read %) (assoc % :read nil) %))]
+    (if-let [pending (:read before)]
+      (deliver! pending nil connection)
+      ;; An accept can finish after its deadline closes the listening socket.
+      (terminate! connection :closed nil))))
 
 (defn release! [connection]
   (require-connection :portable.tcp/release! connection)
@@ -159,11 +182,14 @@
 
 (defn get-error-reason [error]
   #?(:clj (case (.getName (class error))
+            "java.net.BindException" :address-in-use
             "java.net.ConnectException" :connection-refused
             "java.net.UnknownHostException" :dns-failure
             "java.net.SocketTimeoutException" :timeout
             :io-error)
      :cljs (case (.-code error)
+             "EADDRINUSE" :address-in-use
+             "EADDRNOTAVAIL" :address-unavailable
              "ECONNREFUSED" :connection-refused
              ("ENOTFOUND" "EAI_AGAIN") :dns-failure
              "ECONNRESET" :connection-reset
