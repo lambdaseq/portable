@@ -1,0 +1,23 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.4"}
+        lambdaseq/portable-bytes {:local/root "../portable-bytes"}}
+ :aliases
+ {:test
+  {:extra-paths ["test"]
+   :extra-deps {lambdaseq/portable-test-support {:local/root "../../test-support"}}
+   :main-opts ["-m" "portable.udp-test-runner"]}
+  :test-cljs
+  {:extra-paths ["test"]
+   :extra-deps {lambdaseq/portable-test-support {:local/root "../../test-support"}
+                org.clojure/clojurescript {:mvn/version "1.11.132"}}
+   :main-opts ["-m" "cljs.main" "-co" "test-node.edn" "-c" "portable.udp-test-runner"]}
+  :test-browser
+  {:extra-paths ["test"]
+   :extra-deps {lambdaseq/portable-test-support {:local/root "../../test-support"}
+                org.clojure/clojurescript {:mvn/version "1.11.132"}}
+   :main-opts ["-m" "cljs.main" "-co" "test-browser.edn" "-c" "portable.udp-browser-test-runner"]}
+  :repl
+  {:extra-paths ["test"]
+   :extra-deps {lambdaseq/portable-test-support {:local/root "../../test-support"}
+                nrepl/nrepl {:mvn/version "1.3.0"}}
+   :main-opts ["-m" "nrepl.cmdline" "--bind" "127.0.0.1" "--port" "0"]}}}

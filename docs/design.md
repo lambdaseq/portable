@@ -14,6 +14,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-tcp` owns `portable.tcp`, with asynchronous native sockets and explicit browser rejection.
 `lambdaseq/portable-tls` owns `portable.tls`, with verified TLS layered over portable TCP.
 `lambdaseq/portable-http` owns `portable.http`, with native HTTP/1.1 over portable transports and browser Fetch support.
+`lambdaseq/portable-udp` owns `portable.udp`, with asynchronous native IPv4 unicast datagrams and explicit browser rejection.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -36,6 +37,7 @@ Families share development test support. Filesystem byte and text operations dep
 TCP also depends on `portable-bytes` for unsigned byte vectors.
 TLS depends on TCP for connection establishment and lifecycle, and on bytes for plaintext vectors.
 HTTP depends on bytes, TCP, and TLS for its request and response contract.
+UDP depends on bytes for its payload representation. It is independent of the stream transport libraries.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -60,6 +62,9 @@ Certificate and peer-name verification are mandatory. TLS and TCP handles remain
 Process-runtime HTTP requests use portable's protocol stack. Browser requests wrap Fetch because ordinary pages lack raw TCP sockets.
 The public request and response shapes are shared; browser trust, headers, CORS, decoding, and wire protocol remain browser-controlled.
 Unavailable browser controls fail explicitly when detectable. Shared codec contracts still run in browsers.
+UDP provides bind, send, receive, and close operations with error-first callbacks and sender address metadata.
+It preserves datagram boundaries, including empty packets. Oversized receives fail without returning truncated data.
+UDP deadlines close the socket. Broadcast and multicast controls, host lookup, and IPv6 are outside its contract.
 
 ## Adding an API
 
@@ -79,4 +84,5 @@ Filesystem operations use native host paths; see the [filesystem contract](../li
 TCP exposes asynchronous client sockets; see the [TCP contract](../libs/portable-tcp/README.md).
 TLS exposes verified client connections; see the [TLS contract](../libs/portable-tls/README.md).
 HTTP exposes bounded asynchronous requests; see the [HTTP contract](../libs/portable-http/README.md).
+UDP exposes asynchronous IPv4 datagrams; see the [UDP contract](../libs/portable-udp/README.md).
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

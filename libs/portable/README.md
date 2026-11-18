@@ -14,6 +14,7 @@ Use `lambdaseq/portable-fs` for filesystem access; it includes `portable-bytes` 
 Use `lambdaseq/portable-tcp` for asynchronous sockets; it includes `portable-bytes` for byte vectors.
 Use `lambdaseq/portable-tls` for verified TLS clients over `portable-tcp`.
 Use `lambdaseq/portable-http` for HTTP requests over portable transports or browser Fetch.
+Use `lambdaseq/portable-udp` for asynchronous IPv4 unicast datagrams; it includes `portable-bytes`.
 
 Run commands from the workspace root:
 

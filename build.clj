@@ -81,7 +81,14 @@
                     :browser-tests "target/browser.html"
                     :browser-server ["node" "test/fixtures/server.cjs"]
                     :lib lambdaseq/portable-http
-                    :description "HTTP/1.1 over portable TCP/TLS with browser Fetch support."}})
+                    :description "HTTP/1.1 over portable TCP/TLS with browser Fetch support."}
+    :portable-udp {:kind :lib
+                   :dir "libs/portable-udp"
+                   :platform :cljc
+                   :test-runner portable.udp-test-runner
+                   :browser-tests "target/browser.html"
+                   :lib lambdaseq/portable-udp
+                   :description "Asynchronous IPv4 unicast datagram sockets."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)

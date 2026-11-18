@@ -1,0 +1,4 @@
+{:output-to "target/browser-tests.js"
+ :output-dir "target/cljs-browser"
+ :browser-repl false
+ :optimizations :simple}

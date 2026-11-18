@@ -6,7 +6,8 @@
         lambdaseq/portable-fs {:local/root "../portable-fs"}
         lambdaseq/portable-tcp {:local/root "../portable-tcp"}
         lambdaseq/portable-tls {:local/root "../portable-tls"}
-        lambdaseq/portable-http {:local/root "../portable-http"}}
+        lambdaseq/portable-http {:local/root "../portable-http"}
+        lambdaseq/portable-udp {:local/root "../portable-udp"}}
  :aliases
  {:repl
   {:extra-deps {nrepl/nrepl {:mvn/version "1.3.0"}}
