@@ -1,5 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.4"}
+        lambdaseq/portable-compression {:local/root "../portable-compression"}
         lambdaseq/portable-bytes {:local/root "../portable-bytes"}
         lambdaseq/portable-tcp {:local/root "../portable-tcp"}
         lambdaseq/portable-tls {:local/root "../portable-tls"}}

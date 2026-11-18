@@ -18,6 +18,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-dns` owns `portable.dns`, with shared wire codecs and native UDP/TCP queries.
 `lambdaseq/portable-random` owns `portable.random`, with secure byte vectors and uniform bounded integers.
 `lambdaseq/portable-crypto` owns `portable.crypto`, with asynchronous SHA-256/SHA-512 digests and HMACs.
+`lambdaseq/portable-compression` owns `portable.compression`, with bounded asynchronous gzip and zlib-wrapped DEFLATE.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -39,7 +40,7 @@ CLR, Dart, and jank remain targets without verified adapters.
 Families share development test support. Filesystem byte and text operations depend on `portable-bytes` for their shared representation and encoding.
 TCP also depends on `portable-bytes` for unsigned byte vectors.
 TLS depends on TCP for connection establishment and lifecycle, and on bytes for plaintext vectors.
-HTTP depends on bytes, TCP, and TLS for its request and response contract.
+HTTP depends on bytes, compression, TCP, and TLS for its request and response contract.
 UDP depends on bytes for its payload representation. It is independent of the stream transport libraries.
 DNS depends on bytes, UDP, TCP, and random generation. Protocol codecs remain usable without native socket or entropy support.
 Random generation has no runtime dependency on another family. It shares byte-vector values with bytes and transport APIs.
@@ -57,6 +58,9 @@ The generated build uses JVM tooling to package `.cljc` sources; that build sett
 Reader conditionals and host-specific source files are implementation details.
 Prefer direct implementation branches before introducing a protocol or backend registry.
 
+Compression depends on bytes for representation and shared private callback completion.
+Its native engines sit below HTTP content decoding and remain independent of networking.
+
 ## Networking layers
 
 Build network protocols from native socket transports upward.
@@ -66,6 +70,7 @@ TLS uses host security implementations above TCP. HTTP protocol encoding and par
 TLS transfers ownership of a connected TCP socket and shares bounded I/O and deadline handling.
 Certificate and peer-name verification are mandatory. TLS and TCP handles remain distinct.
 Process-runtime HTTP requests use portable's protocol stack. Browser requests wrap Fetch because ordinary pages lack raw TCP sockets.
+Native HTTP advertises gzip and deflate, bounds encoded and decoded bodies separately, and decodes within the request deadline.
 The public request and response shapes are shared; browser trust, headers, CORS, decoding, and wire protocol remain browser-controlled.
 Unavailable browser controls fail explicitly when detectable. Shared codec contracts still run in browsers.
 UDP provides bind, send, receive, and close operations with error-first callbacks and sender address metadata.
@@ -103,4 +108,5 @@ UDP exposes asynchronous IPv4 datagrams; see the [UDP contract](../libs/portable
 DNS exposes codecs and explicit-server queries; see the [DNS contract](../libs/portable-dns/README.md).
 Random generation exposes `generate-bytes!` and `generate-int!`; see the [random contract](../libs/portable-random/README.md).
 Crypto exposes `digest!` and `hmac!`; see the [crypto contract](../libs/portable-crypto/README.md).
+Compression exposes `compress!` and `decompress!`; see the [compression contract](../libs/portable-compression/README.md).
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

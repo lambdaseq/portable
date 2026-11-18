@@ -10,6 +10,7 @@
         lambdaseq/portable-udp {:local/root "../portable-udp"}
         lambdaseq/portable-dns {:local/root "../portable-dns"}
         lambdaseq/portable-random {:local/root "../portable-random"}
+        lambdaseq/portable-compression {:local/root "../portable-compression"}
         lambdaseq/portable-crypto {:local/root "../portable-crypto"}}
  :aliases
  {:repl

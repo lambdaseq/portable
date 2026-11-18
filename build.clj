@@ -109,7 +109,14 @@
                       :test-runner portable.crypto-test-runner
                       :browser-tests "target/browser.html"
                       :lib lambdaseq/portable-crypto
-                      :description "Asynchronous SHA-256/SHA-512 digests and HMACs."}})
+                      :description "Asynchronous SHA-256/SHA-512 digests and HMACs."}
+    :portable-compression {:kind :lib
+                           :dir "libs/portable-compression"
+                           :platform :cljc
+                           :test-runner portable.compression-test-runner
+                           :browser-tests "target/browser.html"
+                           :lib lambdaseq/portable-compression
+                           :description "Bounded asynchronous gzip and zlib-wrapped DEFLATE."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)

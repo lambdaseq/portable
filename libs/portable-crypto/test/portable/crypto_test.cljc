@@ -1,7 +1,7 @@
 (ns portable.crypto-test
   (:require [portable.bytes :as bytes]
             [portable.crypto :as crypto]
-            [portable.crypto.internal :as internal]
+            [portable.bytes.operation :as operation]
             [portable.crypto-vectors :as vectors]
             #?(:clj [portable.crypto.jvm :as backend]
                :cljs [portable.crypto.javascript :as backend])
@@ -154,7 +154,7 @@
 (deftest callback-exceptions-are-outside-native-error-handling
   (let [tasks (atom [])
         failure #?(:clj (Exception. "Callback failed.") :cljs (js/Error. "Callback failed."))]
-    (with-redefs [internal/dispatch! (fn [task] (swap! tasks conj task))
+    (with-redefs [operation/dispatch! (fn [task] (swap! tasks conj task))
                   backend/start! (fn [_ complete!] (complete! nil (vec (repeat 32 0))))]
       (crypto/digest! :sha-256 [] (fn [_ _] (throw failure)))
       ((first @tasks))

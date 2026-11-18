@@ -1,6 +1,10 @@
 (ns portable.http-test
   (:require [clojure.string :as str]
             [portable.bytes :as bytes]
+            [portable.compression :as compression]
+            [portable.http.transport :as transport]
+            [portable.http.message :as message]
+            [portable.tcp.operation :as control]
             [portable.http :as http]
             [portable.http-codec-test]
             [portable.http-fixture :as fixture]
@@ -24,6 +28,13 @@
       (fn [{:keys [url raw-url stop!]}]
         (let [cases [[(str url "/get") {} 200 fixture/PAYLOAD]
                      [(str url "/echo") {:method :post :headers {"X-Test" "yes"} :body [0 255 1 2]} 201 [0 255 1 2]]
+                     [(str url "/gzip") {:max-body-bytes 5} 200 fixture/PAYLOAD]
+                     [(str url "/deflate") {:max-body-bytes 5} 200 fixture/PAYLOAD]
+                     [(str url "/stacked") {:max-body-bytes 5} 200 fixture/PAYLOAD]
+                     [(str url "/gzip-empty") {:max-body-bytes 0} 200 []]
+                     [(str url "/gzip") {:method :head :max-body-bytes 0} 200 []]
+                     [(str raw-url "/gzip-chunked") {} 200 fixture/PAYLOAD]
+                     [(str raw-url "/gzip-close") {} 200 fixture/PAYLOAD]
                      [(str url "/head") {:method :head :max-body-bytes 0} 200 []]
                      [(str url "/empty") {:max-body-bytes 0} 204 []]
                      [(str url "/not-modified") {:max-body-bytes 0} 304 []]
@@ -51,6 +62,9 @@
      (fixture/start!
       (fn [{:keys [url raw-url stop!]}]
         (let [cases [[(str url "/large") {:max-body-bytes 10} :body-too-large]
+                     [(str url "/gzip-large") {:max-body-bytes 10} :body-too-large]
+                     [(str url "/gzip") {:max-body-bytes 4} :body-too-large]
+                     [(str url "/deflate") {:max-body-bytes 4} :body-too-large]
                      [(str url "/redirect") {} (if (fixture/is-browser?) :network-error :redirect-blocked)]
                      [(str url "/redirect") {:method :head} (if (fixture/is-browser?) :network-error :redirect-blocked)]
                      [(str raw-url "/truncated") {} (if (fixture/is-browser?) :network-error :incomplete-response)]
@@ -101,9 +115,8 @@
            (http/request!
             {:url (str url "/gzip")}
             (fn [error response]
-              (if (fixture/is-browser?)
-                (do (is (nil? error)) (is (= fixture/PAYLOAD (:body response))))
-                (do (is (= :unsupported-content-encoding (:reason (ex-data error)))) (is (nil? response))))
+              (is (nil? error)) (is (= fixture/PAYLOAD (:body response)))
+              (is (= ["gzip"] (get-in response [:headers "content-encoding"])))
               (stop! done))))))))))
 
 (deftest verified-https-and-browser-trust-limit
@@ -154,3 +167,67 @@
                                   (finally
                                     (set! js/globalThis.fetch original)
                                     (stop! done)))))))))))))
+
+(deftest compressed-response-validation-respects-runtime-control
+  (run-contract!
+   (fn [done]
+     (fixture/start!
+      (fn [{:keys [url stop!]}]
+        (letfn [(check! [remaining]
+                  (if-let [path (first remaining)]
+                    (http/request!
+                     {:url (str url path)}
+                     (fn [error response]
+                       (if (fixture/is-browser?)
+                         ;; Fetch owns validation and can accept incomplete or corrupt gzip footers.
+                         (if error
+                           (do (is (= :network-error (:reason (ex-data error)))) (is (nil? response)))
+                           (is (= fixture/PAYLOAD (:body response))))
+                         (do (is (= :invalid-compressed-body (:reason (ex-data error)))) (is (nil? response))))
+                       (check! (next remaining))))
+                    (stop! done)))]
+          (check! ["/gzip-corrupt" "/gzip-truncated"])))))))
+
+(deftest encoded-size-controls-are-explicit
+  (run-contract!
+   (fn [done]
+     (fixture/start!
+      (fn [{:keys [url stop!]}]
+        (if (fixture/is-browser?)
+          (do (is (= :encoded-limit-unavailable
+                     (:reason (get-error-data http/request! {:url (str url "/gzip") :max-encoded-body-bytes 10}
+                                              (fn [_ _])))))
+              (stop! done))
+          (letfn [(check! [remaining]
+                    (if-let [[path limit] (first remaining)]
+                      (http/request! {:url (str url path) :max-encoded-body-bytes limit}
+                                     (fn [error response]
+                                       (is (= :body-too-large (:reason (ex-data error))))
+                                       (is (nil? response)) (check! (next remaining))))
+                      (stop! done)))]
+            (check! [["/gzip" 10] ["/get" 4] ["/stacked" 10]]))))))))
+
+(deftest decoding-keeps-the-whole-request-deadline-and-cancellation
+  (run-contract!
+   (fn [done]
+     (let [pending (atom nil) calls (atom 0)
+           operation (control/create!
+                      100
+                      (fn [error response]
+                        (is (= 1 (swap! calls inc)))
+                        (is (= :timeout (:reason (ex-data error)))) (is (nil? response))
+                        (@pending nil [1])
+                        (is (= 1 @calls))
+                        (let [pending (atom nil)
+                              operation (control/create!
+                                         5000
+                                         (fn [error response]
+                                           (is (= :cancelled (:reason (ex-data error)))) (is (nil? response))
+                                           (@pending nil [1]) (done)) message/make-error)]
+                          (with-redefs [compression/decompress! (fn [_ _ _ callback] (reset! pending callback))]
+                            (transport/decode-body! {:max-body-bytes 1 :max-encoded-body-bytes 100}
+                                                    operation {:status 200 :headers {} :body []} [:gzip]))
+                          (control/cancel! operation))) message/make-error)]
+       (with-redefs [compression/decompress! (fn [_ _ _ callback] (reset! pending callback))]
+         (transport/decode-body! {:max-body-bytes 1 :max-encoded-body-bytes 100}
+                                 operation {:status 200 :headers {} :body []} [:gzip]))))))

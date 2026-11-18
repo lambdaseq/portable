@@ -46,7 +46,7 @@
            ["HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nabc" :incomplete-response]
            ["HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nabcd" :unexpected-data]
            ["HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip, chunked\r\n\r\n" :unsupported-transfer-encoding]
-           ["HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: 3\r\n\r\nabc" :unsupported-content-encoding]
+           ["HTTP/1.1 200 OK\r\nContent-Encoding: br\r\nContent-Length: 3\r\n\r\nabc" :unsupported-content-encoding]
            ["HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\nZ\r\n" :malformed-response]
            ["HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabcXX" :malformed-response]
            ["HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nab" :incomplete-response]
@@ -83,7 +83,7 @@
 
 (deftest request-serialization
   (let [request (message/prepare-request {:url "http://example.test/a?q=1#fragment" :headers {"X-Test" "ok"}} (fn [_ _]))]
-    (is (= "GET /a?q=1 HTTP/1.1\r\naccept-encoding: identity\r\nconnection: close\r\nhost: example.test\r\nx-test: ok\r\n\r\n"
+    (is (= "GET /a?q=1 HTTP/1.1\r\naccept-encoding: gzip, deflate\r\nconnection: close\r\nhost: example.test\r\nx-test: ok\r\n\r\n"
            (message/decode-latin1 (message/encode-request request)))))
   (let [request (message/prepare-request {:url "https://[::1]:8443?x=1" :method :post :body [0 255]} (fn [_ _]))
         wire (message/encode-request request)]
@@ -112,8 +112,31 @@
            [{:url "http://example.test/" :body [1]} :body-not-allowed]
            [{:url "http://example.test/" :method :post :body [-1]} :expected-byte-vector]
            [{:url "http://example.test/" :max-body-bytes -1} :invalid-body-limit]
+           [{:url "http://example.test/" :max-encoded-body-bytes -1} :invalid-encoded-body-limit]
+           [{:url "http://example.test/" :max-encoded-body-bytes 16777217} :invalid-encoded-body-limit]
            [{:url "http://example.test/" :timeout-ms 0} :invalid-timeout]
            [{:url "http://example.test/" :ca-certs []} :invalid-tls-options]
            [{:url "http://example.test/" :follow-redirects true} :unknown-option]]]
     (is (= {:type :portable/invalid-input :operation :portable.http/request! :reason reason}
            (get-error-data message/prepare-request options (fn [_ _]))))))
+
+(deftest content-coding-framing-and-limits
+  (doseq [coding ["GZip" "gzip, deflate" "identity, gzip" " gzip "]]
+    (let [state (decoder/create-decoder {:method "GET" :max-body-bytes 0 :max-encoded-body-bytes 3})
+          result (decoder/feed state (message/encode-ascii
+                                      (str "HTTP/1.1 200 OK\r\nContent-Encoding: " coding "\r\nContent-Length: 3\r\n\r\nabc")))]
+      (is (= [97 98 99] (get-in result [:response :body])))
+      (is (seq (:content-codings result)))))
+  (doseq [coding ["" "gzip," "gzip,,deflate" "gzip;level=1" "br" "gzip,gzip,gzip,gzip,gzip"]]
+    (is (= :unsupported-content-encoding
+           (:reason (get-error-data message/parse-content-codings {"content-encoding" [coding]})))))
+  (doseq [wire ["HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: 3\r\n\r\nabc"
+                "HTTP/1.1 200 OK\r\nContent-Encoding: deflate\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabc\r\n0\r\n\r\n"
+                "HTTP/1.0 200 OK\r\nContent-Encoding: gzip\r\n\r\nabc"]]
+    (is (= :body-too-large
+           (:reason (get-error-data decoder/feed
+                                    (decoder/create-decoder {:method "GET" :max-body-bytes 100 :max-encoded-body-bytes 2})
+                                    (message/encode-ascii wire))))))
+  (doseq [[status method] [[200 "HEAD"] [204 "GET"] [304 "GET"]]]
+    (is (= [] (:body (decode-response (str "HTTP/1.1 " status " Empty\r\nContent-Encoding: gzip\r\nContent-Length: 123\r\n\r\n")
+                                      method 0 1))))))

@@ -46,6 +46,7 @@ jar tf libs/portable-udp/target/portable-udp-0.1.0.jar
 jar tf libs/portable-dns/target/portable-dns-0.1.0.jar
 jar tf libs/portable-random/target/portable-random-0.1.0.jar
 jar tf libs/portable-crypto/target/portable-crypto-0.1.0.jar
+jar tf libs/portable-compression/target/portable-compression-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
@@ -55,6 +56,7 @@ Browser HTTP uses Fetch; process-runtime HTTP uses portable's HTTP/1.1 stack ove
 DNS codecs run on every verified runtime. Raw DNS queries use portable UDP/TCP and fail explicitly in browsers.
 Secure random bytes and uniform bounded integers use native entropy sources on all four verified runtimes.
 SHA-256/SHA-512 digests and HMACs share an asynchronous callback contract, including browser Web Crypto.
+Gzip and zlib-wrapped DEFLATE use bounded asynchronous byte-vector operations on all four runtimes.
 
 ### Troubleshooting
 
@@ -79,6 +81,7 @@ SHA-256/SHA-512 digests and HMACs share an asynchronous callback contract, inclu
 | `libs/portable-dns/`            | DNS codecs and UDP/TCP queries, `lambdaseq/portable-dns`       |
 | `libs/portable-random/`         | Secure bytes and bounded integers, `lambdaseq/portable-random` |
 | `libs/portable-crypto/`         | SHA-256/SHA-512 digests and HMACs, `lambdaseq/portable-crypto`  |
+| `libs/portable-compression/`    | Bounded gzip and zlib DEFLATE, `lambdaseq/portable-compression` |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -116,6 +119,9 @@ For secure randomness alone, use `lambdaseq/portable-random` with `:local/root "
 See the [random generation limits and runtime sources](libs/portable-random/README.md).
 For digests and HMACs alone, use `lambdaseq/portable-crypto` with `:local/root "../portable/libs/portable-crypto"`.
 See the [crypto callback, byte-vector, and runtime contract](libs/portable-crypto/README.md).
+
+For compression alone, use `lambdaseq/portable-compression` with `:local/root "../portable/libs/portable-compression"`.
+See the [compression formats, limits, and callbacks](libs/portable-compression/README.md).
 
 ## Portability contract
 

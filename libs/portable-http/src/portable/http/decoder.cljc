@@ -5,6 +5,7 @@
 
 (defn create-decoder [request]
   {:phase :head :buffer [] :body [] :method (:method request) :max-body-bytes (:max-body-bytes request)
+   :max-encoded-body-bytes (:max-encoded-body-bytes request (:max-body-bytes request))
    :interims 0 :trailer-size 0 :trailer-count 0})
 
 (defn- find-sequence [data pattern]
@@ -43,7 +44,6 @@
 (defn- select-framing [state {:keys [status version headers]}]
   (let [lengths (get headers "content-length")
         encodings (get headers "transfer-encoding")
-        coding (some->> (get headers "content-encoding") (str/join ",") str/lower-case)
         {:keys [length transfer]} (message/parse-framing headers)
         next-state (assoc state :status status :headers headers)]
     (when (= status 101) (message/throw-protocol-error :unsupported-upgrade))
@@ -61,15 +61,20 @@
       (or (= "HEAD" (:method state)) (#{204 304} status))
       (finish-response (assoc next-state :buffer []))
 
-      (and coding (not= coding "identity")) (message/throw-protocol-error :unsupported-content-encoding)
-      transfer (assoc next-state :phase :chunk-size)
-      length (do (when (> length (:max-body-bytes state)) (message/throw-protocol-error :body-too-large))
-                 (if (zero? length) (finish-response next-state)
-                     (assoc next-state :phase :fixed :remaining length)))
-      :else (assoc next-state :phase :close))))
+      :else
+      (let [codings (message/parse-content-codings headers)
+            limit (if (seq codings) (:max-encoded-body-bytes state)
+                      (min (:max-body-bytes state) (:max-encoded-body-bytes state)))
+            framed (assoc next-state :content-codings codings :body-limit limit)]
+        (cond
+          transfer (assoc framed :phase :chunk-size)
+          length (do (when (> length limit) (message/throw-protocol-error :body-too-large))
+                     (if (zero? length) (finish-response framed)
+                         (assoc framed :phase :fixed :remaining length)))
+          :else (assoc framed :phase :close))))))
 
 (defn- append-body [state size]
-  (when (> (+ (count (:body state)) size) (:max-body-bytes state))
+  (when (> (+ (count (:body state)) size) (:body-limit state))
     (message/throw-protocol-error :body-too-large))
   (-> state
       (update :body into (subvec (:buffer state) 0 size))
@@ -87,7 +92,7 @@
           [_ size] (re-matches #"([0-9A-Fa-f]+)(?:[ \t]*;[\t -~]*)?" line)]
       (when (> end 8192) (message/throw-protocol-error :headers-too-large))
       (when-not size (message/throw-protocol-error :malformed-response))
-      (let [remaining (message/parse-number size 16 (- (:max-body-bytes state) (count (:body state))) :body-too-large)]
+      (let [remaining (message/parse-number size 16 (- (:body-limit state) (count (:body state))) :body-too-large)]
         (assoc (drop-buffer state (+ end 2)) :phase (if (zero? remaining) :trailers :chunk-data)
                :remaining remaining)))
     (do (when (> (count (:buffer state)) 8192) (message/throw-protocol-error :headers-too-large)) state)))

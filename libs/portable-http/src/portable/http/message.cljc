@@ -83,6 +83,13 @@
 
 (defn trim-ows [value] (str/replace value #"^[ \t]+|[ \t]+$" ""))
 
+(defn parse-content-codings [headers]
+  (let [values (get headers "content-encoding")
+        codings (when values (mapv #(-> % trim-ows str/lower-case) (str/split (str/join "," values) #"," -1)))]
+    (when (or (> (count codings) 4) (some #(not (#{"gzip" "deflate" "identity"} %)) codings))
+      (throw-protocol-error :unsupported-content-encoding))
+    (mapv keyword (remove #{"identity"} codings))))
+
 (defn- parse-headers [headers]
   (when-not (map? headers) (throw-invalid-input :invalid-headers))
   (when (> (count headers) 100) (throw-invalid-input :invalid-headers))
@@ -99,7 +106,7 @@
 
 (defn prepare-request [options callback]
   (transport/validate-options :portable.http/request! options
-                              #{:url :method :headers :body :timeout-ms :max-body-bytes :ca-certs})
+                              #{:url :method :headers :body :timeout-ms :max-body-bytes :max-encoded-body-bytes :ca-certs})
   (transport/validate-callback :portable.http/request! callback)
   (let [parsed-url (parse-url (:url options))
         method (:method options :get)
@@ -114,12 +121,17 @@
     (when (contains? options :ca-certs)
       (when-not (= "https" (:scheme parsed-url)) (throw-invalid-input :invalid-tls-options))
       (tls/validate-ca-certs :portable.http/request! (:ca-certs options)))
-    (merge (transport/parse-timeout :portable.http/request! options) parsed-url
-           {:method (str/upper-case (name method)) :headers headers :body body :max-body-bytes limit})))
+    (let [encoded-limit (:max-encoded-body-bytes options (min 16777216 (+ limit 65536)))]
+      (when-not (and (integer? encoded-limit) (<= 0 encoded-limit 16777216))
+        (throw-invalid-input :invalid-encoded-body-limit))
+      (merge (transport/parse-timeout :portable.http/request! options) parsed-url
+             {:method (str/upper-case (name method)) :headers headers :body body :max-body-bytes limit
+              :max-encoded-body-bytes encoded-limit
+              :encoded-limit-explicit? (contains? options :max-encoded-body-bytes)}))))
 
 (defn encode-request [request]
   (let [{:keys [method target authority headers body]} request
-        fields (cond-> (assoc headers "host" authority "connection" "close" "accept-encoding" "identity")
+        fields (cond-> (assoc headers "host" authority "connection" "close" "accept-encoding" "gzip, deflate")
                  (not (#{"GET" "HEAD"} method)) (assoc "content-length" (str (count body))))
         head (str method " " target " HTTP/1.1\r\n"
                   (str/join (map (fn [[name value]] (str name ": " value "\r\n")) (sort-by key fields)))

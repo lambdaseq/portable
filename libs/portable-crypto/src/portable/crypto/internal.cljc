@@ -1,6 +1,7 @@
 (ns portable.crypto.internal
   "Private crypto validation and asynchronous callback completion."
-  (:require [portable.bytes :as bytes]))
+  (:require [portable.bytes :as bytes]
+            [portable.bytes.operation :as operation]))
 
 (defn- throw-invalid-input [operation argument reason]
   (throw (ex-info "Invalid crypto input."
@@ -37,21 +38,14 @@
     error
     (make-error operation :crypto-failure error)))
 
-(defn dispatch! [f]
-  #?(:clj (doto (Thread. ^Runnable (bound-fn [] (f)) "portable-crypto-worker") (.setDaemon true) (.start))
-     :cljs (js/queueMicrotask f)))
-
 (defn start! [request callback perform!]
-  (let [completed (atom false)
-        complete! (fn [error value]
-                    (when (compare-and-set! completed false true)
-                      (let [error (cond
-                                    error (normalize-error (:operation request) error)
-                                    (not (and (bytes/byte-vector? value) (= (:result-size request) (count value))))
-                                    (make-error (:operation request) :invalid-result nil)
-                                    :else nil)]
-                        ;; Callback exceptions belong to the caller, outside native failure handling.
-                        (dispatch! #(callback error (when-not error value))))))]
-    (dispatch! #(try (perform! request complete!)
-                     (catch #?(:clj Exception :cljs :default) error (complete! error nil)))))
-  nil)
+  (operation/start!
+   request
+   (fn [error value]
+     (let [error (cond
+                   error (normalize-error (:operation request) error)
+                   (not (and (bytes/byte-vector? value) (= (:result-size request) (count value))))
+                   (make-error (:operation request) :invalid-result nil)
+                   :else nil)]
+       (callback error (when-not error value))))
+   perform!))

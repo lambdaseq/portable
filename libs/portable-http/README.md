@@ -38,6 +38,7 @@ Network, protocol, deadline, and cancellation failures reach the callback with n
 | `:body` | Unsigned byte vector, default empty; maximum 1048576 bytes |
 | `:timeout-ms` | Whole-request deadline, default 10000; integer from 1 through 2147483647 |
 | `:max-body-bytes` | Maximum returned body, default 1048576; integer from 0 through 16777216 |
+| `:max-encoded-body-bytes` | Native encoded-body limit, default `min(16777216, max-body-bytes + 65536)`; integer from 0 through 16777216; unavailable in browsers |
 | `:ca-certs` | Optional HTTPS trust anchors following the TLS PEM contract; unavailable in browsers |
 
 GET and HEAD requests reject nonempty bodies. Unknown options are rejected.
@@ -80,7 +81,14 @@ Trailers are validated and discarded. Chunk extensions are treated as bounded op
 Header blocks and trailers each have a 65536-byte limit and a 100-field limit.
 Chunk-size lines have an 8192-byte limit. At most eight informational responses are accepted.
 
-Native requests send Accept-Encoding: identity. Other response content encodings fail with `:unsupported-content-encoding`.
+Native requests send Accept-Encoding: gzip, deflate. Responses decode through [portable-compression](../portable-compression/README.md).
+Native decoding accepts identity, gzip, and zlib-wrapped deflate, with at most four listed content codings.
+Stacked codings decode in reverse order. Each gzip layer accepts one member; zlib dictionaries and trailing data are rejected.
+Other codings fail with `:unsupported-content-encoding`. Malformed compressed streams fail with `:invalid-compressed-body`.
+The returned body limit applies after decoding. Encoded bytes and intermediate decoded layers use `:max-encoded-body-bytes`.
+Identity bodies must fit both limits. Size failures use `:body-too-large`.
+The request deadline and cancellation cover decompression; bounded native work can finish after cancellation without delivering another callback.
+Content-Encoding and Content-Length remain received metadata and can describe encoded bytes rather than the returned body.
 Additional transfer codings, CONNECT tunnels, protocol upgrades, and HTTP/2 or HTTP/3 are outside the native contract.
 
 ## Browser Fetch limits
@@ -95,7 +103,9 @@ Returned headers are limited to what Fetch exposes. Set-Cookie is hidden, and CO
 Fetch can combine repeated header values into one string, which occupies one vector entry.
 Framing checks apply to exposed headers; raw wire validation belongs to the browser.
 Fetch transparently decompresses supported content encodings. The body limit applies to the decoded bytes.
-Thus compressed responses can succeed in browsers while failing explicitly on the native adapter.
+An explicit `:max-encoded-body-bytes` throws `:encoded-limit-unavailable`; Fetch hides encoded bytes.
+Fetch also controls compressed-stream validation. Chrome can accept corrupt checksums or incomplete gzip footers that native HTTP rejects.
+Use standalone `portable.compression/decompress!` when validating an encoded byte vector; Fetch has already decoded HTTP bodies.
 Browser network errors can combine CORS, TLS, DNS, or redirect failures without exposing their exact cause.
 
 ## Errors and verification
@@ -103,7 +113,7 @@ Browser network errors can combine CORS, TLS, DNS, or redirect failures without 
 Input errors throw `ex-info` with `:type :portable/invalid-input`, `:operation :portable.http/request!`, and `:reason`.
 Unavailable controls throw `:type :portable/unsupported-operation`, with reasons such as `:unsupported-header` or `:custom-trust-unavailable`.
 Callback failures use `:type :portable/http-error` with the same operation and a reason.
-Reasons include `:timeout`, `:cancelled`, `:network-error`, `:body-too-large`, `:ambiguous-framing`, `:incomplete-response`, and `:redirect-blocked`.
+Reasons include `:timeout`, `:cancelled`, `:network-error`, `:body-too-large`, `:ambiguous-framing`, `:incomplete-response`, `:invalid-compressed-body`, and `:redirect-blocked`.
 TLS and transport reasons can also propagate. Browser errors often use `:network-error` instead of a more specific native reason.
 Native causes are retained; error data excludes request headers and bodies.
 
@@ -113,10 +123,11 @@ clojure -T:build jar :modules :portable-http
 ```
 
 Shared contracts run the pure codec on every runtime and exercise real loopback HTTP requests, including Chrome Fetch.
+Compressed cases cover both formats, stacked decoding, fixed/chunked/close framing, empty output, malformed data, and separate size bounds.
 Native HTTPS contracts reuse TLS test credentials and verify trusted success and untrusted rejection.
 The browser test page is served over loopback HTTP, with the fixture server stopped after verification.
 Fixture servers use native HTTP implementations; production process-runtime clients do not.
 Test fixtures are excluded from library jars. Node and local loopback permission are required for the shared suite.
 
-Verification uses macOS, Clojure 1.12.4 on JDK 25.0.3, Babashka 1.13.219, ClojureScript 1.11.132, Node.js 24.22.1, and Chrome 157.0.8103.78.
+Verification uses macOS, Clojure 1.12.4 on JDK 25.0.3, Babashka 1.13.219, ClojureScript 1.11.132, Node.js 24.22.1, and Chrome 157.0.8103.80.
 Linux, Windows, IPv6 endpoints, Firefox, Safari, ClojureCLR, ClojureDart, and jank remain unverified.

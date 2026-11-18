@@ -12,6 +12,10 @@
   (when-not (and (exists? js/fetch) (exists? js/AbortController))
     (throw (ex-info "Fetch and AbortController are required."
                     {:type :portable/unsupported-operation :operation :portable.http/request!})))
+  (when (:encoded-limit-explicit? request)
+    (throw (ex-info "Fetch does not expose encoded response bytes."
+                    {:type :portable/unsupported-operation :operation :portable.http/request!
+                     :reason :encoded-limit-unavailable})))
   (when (contains? request :ca-certs)
     (throw (ex-info "Browser trust stores cannot be replaced by a request."
                     {:type :portable/unsupported-operation :operation :portable.http/request!

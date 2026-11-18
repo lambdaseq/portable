@@ -64,9 +64,15 @@ function handleRequest(request, response) {
     response.end();
     return;
   }
-  if (target === "/gzip") {
-    response.writeHead(200, { "Content-Encoding": "gzip" });
-    response.end(zlib.gzipSync(payload));
+  if (["/gzip", "/deflate", "/stacked", "/gzip-empty", "/gzip-large", "/gzip-corrupt", "/gzip-truncated"].includes(target)) {
+    const data = target === "/gzip-empty" ? Buffer.alloc(0) : target === "/gzip-large" ? Buffer.alloc(2048, 1) : payload;
+    const format = target === "/deflate" ? "deflate" : target === "/stacked" ? "gzip, deflate" : "gzip";
+    let encoded = format === "deflate" ? zlib.deflateSync(data) : zlib.gzipSync(data);
+    if (target === "/stacked") encoded = zlib.deflateSync(encoded);
+    if (target === "/gzip-corrupt") encoded[encoded.length - 8] ^= 1;
+    if (target === "/gzip-truncated") encoded = encoded.subarray(0, encoded.length - 1);
+    response.writeHead(200, { "Content-Encoding": format, "Content-Length": String(encoded.length) });
+    response.end(encoded);
     return;
   }
   if (target === "/large") {
@@ -106,6 +112,14 @@ const rawResponses = {
   "/truncated": `HTTP/1.1 200 OK\r\n${rawFields}Content-Length: 5\r\n\r\nabc`,
   "/badchunk": `HTTP/1.1 200 OK\r\n${rawFields}Transfer-Encoding: chunked\r\n\r\nZ\r\nabc\r\n0\r\n\r\n`,
 };
+const compressedPayload = zlib.gzipSync(payload);
+rawResponses["/gzip-close"] = Buffer.concat([
+  Buffer.from(`HTTP/1.0 200 OK\r\n${rawFields}Content-Encoding: gzip\r\n\r\n`), compressedPayload,
+]);
+rawResponses["/gzip-chunked"] = Buffer.concat([
+  Buffer.from(`HTTP/1.1 200 OK\r\n${rawFields}Content-Encoding: gzip\r\nTransfer-Encoding: chunked\r\n\r\n${compressedPayload.length.toString(16)}\r\n`),
+  compressedPayload, Buffer.from("\r\n0\r\n\r\n"),
+]);
 const rawServer = net.createServer((peer) => {
   let received = "";
   let replied = false;
@@ -116,7 +130,7 @@ const rawServer = net.createServer((peer) => {
     replied = true;
     const target = received.split(" ")[1];
     const data = rawResponses[target] || rawResponses["/fixed"];
-    if (["/close", "/truncated", "/badchunk", "/ambiguous"].includes(target)) peer.end(data);
+    if (["/close", "/gzip-close", "/truncated", "/badchunk", "/ambiguous"].includes(target)) peer.end(data);
     else peer.write(data);
   });
 });

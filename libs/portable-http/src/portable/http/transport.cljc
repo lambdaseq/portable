@@ -1,6 +1,7 @@
 (ns portable.http.transport
   "HTTP/1.1 over portable TCP/TLS, without host HTTP clients."
-  (:require [portable.tcp.operation :as control]
+  (:require [portable.compression :as compression]
+            [portable.tcp.operation :as control]
             [portable.http.decoder :as decoder]
             [portable.http.message :as message]
             [portable.tcp :as tcp]
@@ -18,6 +19,22 @@
 (defn- write-transport! [secure? connection data options callback]
   (if secure? (tls/write! connection data options callback) (tcp/write! connection data options callback)))
 
+(defn decode-body! [request control response codings]
+  (when-not @(:completed control)
+    (if-let [coding (first codings)]
+      (compression/decompress!
+       coding (:body response)
+       {:max-output-bytes (if (next codings) (:max-encoded-body-bytes request) (:max-body-bytes request))}
+       (fn [error data]
+         (if error
+           (control/finish! control
+                            (message/make-error (case (:reason (ex-data error))
+                                                  :output-too-large :body-too-large
+                                                  :compression-unavailable :compression-unavailable
+                                                  :invalid-compressed-body) error) nil)
+           (decode-body! request control (assoc response :body data) (next codings)))))
+      (control/finish! control nil response))))
+
 (defn- read-response! [request control connection secure? state]
   (when-not @(:completed control)
     (read-transport!
@@ -29,7 +46,9 @@
                            (catch #?(:clj Exception :cljs :default) failure {:error failure}))]
            (cond
              (:error result) (control/finish! control (message/normalize-error (:error result)) nil)
-             (= :done (:phase (:state result))) (control/finish! control nil (:response (:state result)))
+             (= :done (:phase (:state result)))
+             (do (close-transport! secure? connection)
+                 (decode-body! request control (:response (:state result)) (reverse (:content-codings (:state result)))))
              :else (read-response! request control connection secure? (:state result)))))))))
 
 (defn- write-request! [request control connection secure? chunks]
