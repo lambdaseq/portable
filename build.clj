@@ -73,7 +73,7 @@
                    :test-runner portable.tls-test-runner
                    :browser-tests "target/browser.html"
                    :lib lambdaseq/portable-tls
-                   :description "Verified asynchronous TLS clients over portable TCP."}
+                   :description "TLS clients and server handshakes over portable TCP."}
     :portable-http {:kind :lib
                     :dir "libs/portable-http"
                     :platform :cljc

@@ -75,7 +75,7 @@ Gzip and zlib-wrapped DEFLATE use bounded asynchronous byte-vector operations on
 | `libs/portable-paths/`          | POSIX and Windows paths, `lambdaseq/portable-paths`            |
 | `libs/portable-fs/`             | Synchronous filesystem access, `lambdaseq/portable-fs`        |
 | `libs/portable-tcp/`            | TCP connections and listeners, `lambdaseq/portable-tcp`            |
-| `libs/portable-tls/`            | Verified TLS over TCP, `lambdaseq/portable-tls`               |
+| `libs/portable-tls/`            | TLS clients and server handshakes, `lambdaseq/portable-tls`               |
 | `libs/portable-http/`           | Native HTTP/1.1 and browser Fetch, `lambdaseq/portable-http`   |
 | `libs/portable-udp/`            | Asynchronous IPv4 datagrams, `lambdaseq/portable-udp`         |
 | `libs/portable-dns/`            | DNS codecs and UDP/TCP queries, `lambdaseq/portable-dns`       |
@@ -107,8 +107,8 @@ For filesystem access alone, use `lambdaseq/portable-fs` with `:local/root "../p
 See the [filesystem operations and browser behavior](libs/portable-fs/README.md).
 For TCP alone, use `lambdaseq/portable-tcp` with `:local/root "../portable/libs/portable-tcp"`.
 See the [TCP listeners, callbacks, and connection lifecycle](libs/portable-tcp/README.md).
-For TLS clients alone, use `lambdaseq/portable-tls` with `:local/root "../portable/libs/portable-tls"`.
-See the [TLS verification and runtime limits](libs/portable-tls/README.md).
+For TLS alone, use `lambdaseq/portable-tls` with `:local/root "../portable/libs/portable-tls"`.
+See the [TLS client verification, server handshakes, and runtime limits](libs/portable-tls/README.md).
 For HTTP requests alone, use `lambdaseq/portable-http` with `:local/root "../portable/libs/portable-http"`.
 See the [HTTP API and Fetch limitations](libs/portable-http/README.md).
 For UDP datagrams alone, use `lambdaseq/portable-udp` with `:local/root "../portable/libs/portable-udp"`.

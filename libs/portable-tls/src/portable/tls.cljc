@@ -1,5 +1,5 @@
 (ns portable.tls
-  "Verified asynchronous TLS clients over portable TCP. Browsers are unsupported."
+  "Asynchronous TLS clients and server handshakes over portable TCP. Browsers are unsupported."
   (:require [clojure.string :as str]
             [portable.bytes :as bytes]
             [portable.tcp.internal :as transport]
@@ -35,12 +35,23 @@
       (transport/throw-invalid-input :portable.tls/connect! :invalid-server-name))
     (when (contains? parsed :ca-certs)
       (internal/validate-ca-certs :portable.tls/connect! (:ca-certs parsed)))
-    (when (and (contains? parsed :alpn)
-               (not (and (vector? (:alpn parsed))
-                         (every? #(and (string? %) (<= 1 (count %) 255) (re-matches #"[!-~]+" %)) (:alpn parsed)))))
-      (transport/throw-invalid-input :portable.tls/connect! :invalid-alpn))
+    (internal/validate-alpn :portable.tls/connect! parsed)
     (require-supported :portable.tls/connect!)
     (internal/connect! parsed callback backend/upgrade!)))
+
+(defn accept!
+  "Take ownership of an idle connected TCP handle and perform a server-side TLS handshake.
+  Options: :cert-chain (leaf-first PEM vector), :private-key (unencrypted PKCS#8 PEM), :alpn, :timeout-ms.
+  Return a cancellable TLS handle immediately. Callback: (error TLS-connection)."
+  [connection options callback]
+  (transport/validate-options :portable.tls/accept! options #{:cert-chain :private-key :alpn :timeout-ms})
+  (transport/validate-callback :portable.tls/accept! callback)
+  (let [parsed (transport/parse-timeout :portable.tls/accept! options)]
+    (internal/validate-server-identity parsed)
+    (internal/validate-alpn :portable.tls/accept! parsed)
+    (require-supported :portable.tls/accept!)
+    (transport/require-connection :portable.tls/accept! connection "portable.tcp")
+    (internal/accept! connection parsed callback backend/upgrade!)))
 
 (defn read!
   "Read a bounded plaintext byte vector, or nil at EOF. Uses TCP read options and callback contract."

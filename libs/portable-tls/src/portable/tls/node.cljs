@@ -13,7 +13,7 @@
 
 (defn supported? [] (some? TLS))
 
-(defn upgrade! [connection options pending]
+(defn- upgrade-client! [connection options pending]
   (when-let [certificates (:ca-certs options)]
     (try
       (doseq [pem certificates] (new (.-X509Certificate CRYPTO) pem))
@@ -42,3 +42,31 @@
                                       {:tls-session {:version (.getProtocol socket)
                                                      :alpn (or (.-alpnProtocol socket) nil)}}))))))
   nil)
+
+(defn- upgrade-server! [connection options pending]
+  (let [context (try
+                  (let [certificates (:cert-chain options)]
+                    (doseq [pem certificates] (new (.-X509Certificate CRYPTO) pem))
+                    (let [key (.createPrivateKey CRYPTO (:private-key options))]
+                      (when-not (#{"rsa" "ec"} (.-asymmetricKeyType key))
+                        (throw (js/Error. "Unsupported server key algorithm."))))
+                    (.createSecureContext TLS #js {:cert (str/join "\n" certificates) :key (:private-key options)
+                                                   :minVersion "TLSv1.2" :maxVersion "TLSv1.3"}))
+                  (catch :default error (throw (ex-info "Invalid TLS server identity." {:reason :invalid-identity} error))))
+        socket (new (.-TLSSocket TLS) (transport/get-native connection)
+                    #js {:isServer true :secureContext context :requestCert false :allowHalfOpen true
+                         :highWaterMark 65536 :ALPNProtocols (to-array (:alpn options []))})]
+    (internal/publish-native! connection socket)
+    (tcp/attach-events! connection socket
+                        #(if (= :connecting (:status @(:state connection)))
+                           (internal/get-error-reason %) (transport/get-error-reason %)))
+    (.once socket "secure"
+           #(transport/complete! connection :connect (:token pending) nil connection
+                                 {:tls-session {:version (.getProtocol socket)
+                                                :alpn (or (.-alpnProtocol socket) nil)}})))
+  nil)
+
+(defn upgrade! [connection options pending]
+  (if (:server? options)
+    (upgrade-server! connection options pending)
+    (upgrade-client! connection options pending)))

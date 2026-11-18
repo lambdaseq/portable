@@ -12,7 +12,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-paths` owns `portable.paths`, with explicit POSIX and Windows syntax independent of the host.
 `lambdaseq/portable-fs` owns `portable.fs`, with synchronous native filesystem access and explicit browser rejection.
 `lambdaseq/portable-tcp` owns `portable.tcp`, with asynchronous native sockets and explicit browser rejection.
-`lambdaseq/portable-tls` owns `portable.tls`, with verified TLS layered over portable TCP.
+`lambdaseq/portable-tls` owns `portable.tls`, with verified clients and server handshakes over portable TCP.
 `lambdaseq/portable-http` owns `portable.http`, with native HTTP/1.1 over portable transports and browser Fetch support.
 `lambdaseq/portable-udp` owns `portable.udp`, with asynchronous native IPv4 unicast datagrams and explicit browser rejection.
 `lambdaseq/portable-dns` owns `portable.dns`, with shared wire codecs and native UDP/TCP queries.
@@ -70,7 +70,9 @@ Listener closure releases pending work and undelivered connections; delivered co
 TCP sockets use opaque resource handles; payloads and error data remain portable values.
 TLS uses host security implementations above TCP. HTTP protocol encoding and parsing belong to portable itself.
 TLS transfers ownership of a connected TCP socket and shares bounded I/O and deadline handling.
-Certificate and peer-name verification are mandatory. TLS and TCP handles remain distinct.
+Server-side TLS follows TCP listen and accept, presents a leaf-first certificate chain, and uses an unencrypted PKCS#8 RSA or EC key.
+Its handshake deadline closes the owned socket on timeout; listener ownership remains separate.
+Client certificate-chain and peer-name verification are mandatory. Server-side client-certificate authentication is outside the contract. TLS and TCP handles remain distinct.
 Process-runtime HTTP requests use portable's protocol stack. Browser requests wrap Fetch because ordinary pages lack raw TCP sockets.
 Native HTTP advertises gzip and deflate, bounds encoded and decoded bodies separately, and decodes within the request deadline.
 The public request and response shapes are shared; browser trust, headers, CORS, decoding, and wire protocol remain browser-controlled.
@@ -104,7 +106,7 @@ Environment lookup exposes `get-env`; see the [environment contract](../libs/por
 Paths expose pure lexical operations; see the [path contract](../libs/portable-paths/README.md).
 Filesystem operations use native host paths; see the [filesystem contract](../libs/portable-fs/README.md).
 TCP exposes asynchronous client connections, listening, and accepting; see the [TCP contract](../libs/portable-tcp/README.md).
-TLS exposes verified client connections; see the [TLS contract](../libs/portable-tls/README.md).
+TLS exposes verified client connections and server-side handshakes; see the [TLS contract](../libs/portable-tls/README.md).
 HTTP exposes bounded asynchronous requests; see the [HTTP contract](../libs/portable-http/README.md).
 UDP exposes asynchronous IPv4 datagrams; see the [UDP contract](../libs/portable-udp/README.md).
 DNS exposes codecs and explicit-server queries; see the [DNS contract](../libs/portable-dns/README.md).

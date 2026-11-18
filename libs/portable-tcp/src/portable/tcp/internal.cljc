@@ -45,11 +45,13 @@
       (throw-invalid-input operation :invalid-timeout))
     (assoc options :timeout-ms timeout)))
 
-(defn require-connection [operation connection]
-  (when-not (and (map? connection) (identical? CONNECTION_TAG (::tag connection))
-                 (= (namespace operation) (:operation-ns connection "portable.tcp"))
-                 (not= :listener (:resource-kind connection)))
-    (throw-invalid-input operation :invalid-connection)))
+(defn require-connection
+  ([operation connection] (require-connection operation connection (namespace operation)))
+  ([operation connection expected-namespace]
+   (when-not (and (map? connection) (identical? CONNECTION_TAG (::tag connection))
+                  (= expected-namespace (:operation-ns connection "portable.tcp"))
+                  (not= :listener (:resource-kind connection)))
+     (throw-invalid-input operation :invalid-connection))))
 
 (defn get-pending [connection slot]
   (get @(:state connection) slot))

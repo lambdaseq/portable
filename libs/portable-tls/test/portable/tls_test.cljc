@@ -38,7 +38,7 @@
                                     extra-options)
                              (fn [error connection] (scenario error connection finish!))))))))
 
-(defn- read-all! [connection received done]
+(defn read-all! [connection received done]
   (tls/read! connection {:max-bytes 7 :timeout-ms 2000}
              (fn [error data]
                (is (nil? error))
