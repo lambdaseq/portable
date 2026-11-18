@@ -1,6 +1,6 @@
 (ns portable.http
   "Bounded asynchronous HTTP requests over portable transports, or Fetch in browsers."
-  (:require [portable.http.control :as control]
+  (:require [portable.tcp.operation :as control]
             [portable.http.message :as message]
             [portable.http.transport :as transport]
             #?(:cljs [portable.http.browser :as browser])))
@@ -17,11 +17,11 @@
         (throw (ex-info "Native HTTP transport is unavailable on this runtime."
                         {:type :portable/unsupported-operation :operation :portable.http/request!})))
       #?(:cljs (browser/validate-runtime request) :clj nil))
-    (let [operation (control/create-control! request callback)]
+    (let [operation (control/create! (:timeout-ms request) callback message/make-error)]
       (try
         (if native?
           (transport/start! request operation wire)
           #?(:cljs (browser/start! request operation wire) :clj nil))
         (catch #?(:clj Exception :cljs :default) error
-          (control/finish! operation (control/normalize-error error) nil)))
+          (control/finish! operation (message/normalize-error error) nil)))
       #(control/cancel! operation))))

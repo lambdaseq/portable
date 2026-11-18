@@ -15,6 +15,7 @@ Use `lambdaseq/portable-tcp` for asynchronous sockets; it includes `portable-byt
 Use `lambdaseq/portable-tls` for verified TLS clients over `portable-tcp`.
 Use `lambdaseq/portable-http` for HTTP requests over portable transports or browser Fetch.
 Use `lambdaseq/portable-udp` for asynchronous IPv4 unicast datagrams; it includes `portable-bytes`.
+Use `lambdaseq/portable-dns` for DNS codecs and queries over `portable-udp` and `portable-tcp`.
 
 Run commands from the workspace root:
 

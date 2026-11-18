@@ -15,6 +15,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-tls` owns `portable.tls`, with verified TLS layered over portable TCP.
 `lambdaseq/portable-http` owns `portable.http`, with native HTTP/1.1 over portable transports and browser Fetch support.
 `lambdaseq/portable-udp` owns `portable.udp`, with asynchronous native IPv4 unicast datagrams and explicit browser rejection.
+`lambdaseq/portable-dns` owns `portable.dns`, with shared wire codecs and native UDP/TCP queries.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -38,6 +39,7 @@ TCP also depends on `portable-bytes` for unsigned byte vectors.
 TLS depends on TCP for connection establishment and lifecycle, and on bytes for plaintext vectors.
 HTTP depends on bytes, TCP, and TLS for its request and response contract.
 UDP depends on bytes for its payload representation. It is independent of the stream transport libraries.
+DNS depends on bytes, UDP, and TCP. Protocol codecs remain usable without native socket support.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -65,6 +67,9 @@ Unavailable browser controls fail explicitly when detectable. Shared codec contr
 UDP provides bind, send, receive, and close operations with error-first callbacks and sender address metadata.
 It preserves datagram boundaries, including empty packets. Oversized receives fail without returning truncated data.
 UDP deadlines close the socket. Broadcast and multicast controls, host lookup, and IPv6 are outside its contract.
+DNS queries use caller-selected IPv4 servers, portable UDP, and TCP fallback on matched truncated replies.
+They validate response correlation and share one deadline across transports. Browser network queries fail explicitly.
+DNS encoding and decoding remain pure shared operations. Host DNS resolvers and browser HTTP are outside this family's query implementation.
 
 ## Adding an API
 
@@ -85,4 +90,5 @@ TCP exposes asynchronous client sockets; see the [TCP contract](../libs/portable
 TLS exposes verified client connections; see the [TLS contract](../libs/portable-tls/README.md).
 HTTP exposes bounded asynchronous requests; see the [HTTP contract](../libs/portable-http/README.md).
 UDP exposes asynchronous IPv4 datagrams; see the [UDP contract](../libs/portable-udp/README.md).
+DNS exposes codecs and explicit-server queries; see the [DNS contract](../libs/portable-dns/README.md).
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

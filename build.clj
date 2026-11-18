@@ -88,7 +88,14 @@
                    :test-runner portable.udp-test-runner
                    :browser-tests "target/browser.html"
                    :lib lambdaseq/portable-udp
-                   :description "Asynchronous IPv4 unicast datagram sockets."}})
+                   :description "Asynchronous IPv4 unicast datagram sockets."}
+    :portable-dns {:kind :lib
+                   :dir "libs/portable-dns"
+                   :platform :cljc
+                   :test-runner portable.dns-test-runner
+                   :browser-tests "target/browser.html"
+                   :lib lambdaseq/portable-dns
+                   :description "DNS wire codecs and asynchronous UDP/TCP queries."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)

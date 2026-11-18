@@ -1,7 +1,7 @@
 (ns portable.http.browser
   "Fetch adapter with explicit browser policy and bounded decoded bodies."
   (:require [clojure.string :as str]
-            [portable.http.control :as control]
+            [portable.tcp.operation :as control]
             [portable.http.message :as message]))
 
 (def ^:private FORBIDDEN_HEADERS
@@ -41,7 +41,7 @@
                                    (> (+ (count received) (.-length (.-value result))) (:max-body-bytes request))
                                    (control/finish! control (message/make-error :body-too-large nil) nil)
                                    :else (read-next! (into received (.-value result))))))
-                        (.catch #(control/finish! control (control/normalize-error %) nil)))))]
+                        (.catch #(control/finish! control (message/normalize-error %) nil)))))]
           (read-next! []))))
     (control/finish! control nil {:status (.-status response) :headers headers :body []})))
 
@@ -61,5 +61,5 @@
                      (.forEach (.-headers response) (fn [value name] (swap! values assoc (str/lower-case name) [value])))
                      (message/parse-framing @values)
                      (read-body! request control response @values))))
-          (.catch #(control/finish! control (control/normalize-error %) nil)))))
+          (.catch #(control/finish! control (message/normalize-error %) nil)))))
   nil)

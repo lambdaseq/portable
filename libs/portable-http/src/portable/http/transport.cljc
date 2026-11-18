@@ -1,7 +1,8 @@
 (ns portable.http.transport
   "HTTP/1.1 over portable TCP/TLS, without host HTTP clients."
-  (:require [portable.http.control :as control]
+  (:require [portable.tcp.operation :as control]
             [portable.http.decoder :as decoder]
+            [portable.http.message :as message]
             [portable.tcp :as tcp]
             [portable.tls :as tls]
             #?(:cljs [portable.tcp.node :as node])))
@@ -23,11 +24,11 @@
      secure? connection {:max-bytes 65536 :timeout-ms (:timeout-ms request)}
      (fn [error data]
        (if error
-         (control/finish! control (control/normalize-error error) nil)
+         (control/finish! control (message/normalize-error error) nil)
          (let [result (try {:state (if (nil? data) (decoder/finish state) (decoder/feed state data))}
                            (catch #?(:clj Exception :cljs :default) failure {:error failure}))]
            (cond
-             (:error result) (control/finish! control (control/normalize-error (:error result)) nil)
+             (:error result) (control/finish! control (message/normalize-error (:error result)) nil)
              (= :done (:phase (:state result))) (control/finish! control nil (:response (:state result)))
              :else (read-response! request control connection secure? (:state result)))))))))
 
@@ -37,7 +38,7 @@
       (write-transport! secure? connection (vec chunk) {:timeout-ms (:timeout-ms request)}
                         (fn [error _]
                           (if error
-                            (control/finish! control (control/normalize-error error) nil)
+                            (control/finish! control (message/normalize-error error) nil)
                             (write-request! request control connection secure? (next chunks)))))
       (read-response! request control connection secure? (decoder/create-decoder request)))))
 
@@ -49,7 +50,7 @@
                   (contains? request :ca-certs) (assoc :ca-certs (:ca-certs request)))
         connected! (fn [error handle]
                      (cond
-                       error (control/finish! control (control/normalize-error error) nil)
+                       error (control/finish! control (message/normalize-error error) nil)
                        @(:completed control) (close-transport! secure? handle)
                        :else (do (reset! connection handle)
                                  (write-request! request control handle secure? (partition-all 65536 wire)))))]

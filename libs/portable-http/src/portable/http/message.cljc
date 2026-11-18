@@ -13,6 +13,11 @@
   (ex-info "HTTP request failed."
            {:type :portable/http-error :operation :portable.http/request! :reason reason} cause))
 
+(defn normalize-error [error]
+  (if (= :portable/http-error (:type (ex-data error)))
+    error
+    (make-error (or (:reason (ex-data error)) :network-error) error)))
+
 (defn throw-protocol-error [reason] (throw (make-error reason nil)))
 
 (defn throw-invalid-input [reason]
