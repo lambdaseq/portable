@@ -3,7 +3,7 @@
   (:require [portable.bytes :as bytes]
             [portable.dns.client :as client]
             [portable.dns.codec :as codec]
-            [portable.dns.entropy :as entropy]
+            [portable.random :as random]
             [portable.tcp.internal :as transport]
             [portable.tcp.operation :as operation]
             [portable.udp.internal :as udp]))
@@ -53,7 +53,7 @@
                       {:type :portable/unsupported-operation :operation :portable.dns/query!})))
     (let [control (operation/create! (:timeout-ms request) callback client/make-error)]
       (try
-        (let [id (entropy/generate-id!)
+        (let [id (random/generate-int! 65536)
               wire (codec/encode-prepared request id)]
           (client/start! request control wire id))
         (catch #?(:clj Exception :cljs :default) error

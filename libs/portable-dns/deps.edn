@@ -1,6 +1,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.4"}
         lambdaseq/portable-bytes {:local/root "../portable-bytes"}
+        lambdaseq/portable-random {:local/root "../portable-random"}
         lambdaseq/portable-tcp {:local/root "../portable-tcp"}
         lambdaseq/portable-udp {:local/root "../portable-udp"}}
  :aliases

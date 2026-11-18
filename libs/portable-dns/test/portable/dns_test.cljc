@@ -1,7 +1,9 @@
 (ns portable.dns-test
   (:require [portable.dns :as dns]
             [portable.dns-codec-test]
+            [portable.dns.client :as client]
             [portable.dns-fixture :as fixture]
+            [portable.random :as random]
             #?(:clj [clojure.test :refer [deftest is]]
                :cljs [cljs.test :refer-macros [deftest is async]])))
 
@@ -190,7 +192,40 @@
 (deftest browser-network-queries-are-explicitly-unsupported
   (when (fixture/is-browser?)
     (let [calls (atom 0)]
-      (is (= {:type :portable/unsupported-operation :operation :portable.dns/query!}
-             (get-error-data dns/query! {:name "example.test" :server {:host "127.0.0.1"}}
-                             (fn [_ _] (swap! calls inc)))))
+      (with-redefs [random/generate-int! (fn [_] (throw (ex-info "Browser DNS must not request entropy." {})))]
+        (is (= {:type :portable/unsupported-operation :operation :portable.dns/query!}
+               (get-error-data dns/query! {:name "example.test" :server {:host "127.0.0.1"}}
+                               (fn [_ _] (swap! calls inc))))))
       (is (zero? @calls)))))
+
+(deftest dns-uses-shared-random-id-across-fallback
+  (when-not (fixture/is-browser?)
+    (run-contract!
+     #(with-server!
+       (fn [query! finish!]
+         (let [draws (atom 0)]
+           (with-redefs [random/generate-int! (fn [upper-bound]
+                                               (is (= 65536 upper-bound))
+                                               (swap! draws inc)
+                                               4660)]
+             (query! {:name "fallback.example.test"}
+                     (fn [error response]
+                       (is (nil? error)) (is (= 4660 (:id response)))
+                       (is (= "192.0.2.1" (get-in response [:answers 0 :data :address])))
+                       (is (= 1 @draws)) (finish!))))))
+       %))))
+
+(deftest entropy-failures-reach-dns-callback-before-socket-creation
+  (when-not (fixture/is-browser?)
+    (run-contract!
+     (fn [done]
+       (let [starts (atom 0)
+             failure (ex-info "Entropy failed."
+                              {:type :portable/random-error :operation :portable.random/generate-int! :reason :entropy-failure})]
+         (with-redefs [random/generate-int! (fn [_] (throw failure))
+                       client/start! (fn [& _] (swap! starts inc))]
+           (dns/query! {:name "example.test" :server {:host "127.0.0.1" :port 9}}
+                       (fn [error response]
+                         (is (= {:type :portable/dns-error :operation :portable.dns/query! :reason :entropy-failure} (ex-data error)))
+                         (is (identical? failure (ex-cause error)))
+                         (is (nil? response)) (is (zero? @starts)) (done)))))))))

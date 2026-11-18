@@ -48,7 +48,8 @@ Servers use canonical dotted-decimal IPv4 addresses. Hostnames, IPv6 endpoints, 
 AAAA records can be queried and decoded through an IPv4 server.
 Numeric types range from 1 through 65535, excluding transfer types IXFR and AXFR.
 
-Each query uses a cryptographically generated transaction ID and its own socket.
+Each query uses `portable-random` to generate a secure transaction ID and owns its socket.
+The ID is drawn once with `generate-int! 65536` and reused across TCP fallback.
 UDP binds an ephemeral port. Replies must match the selected server, ID, opcode, question, and recursion-desired flag.
 Mismatched UDP replies are ignored until a matching reply arrives or the original deadline expires.
 Matching malformed replies fail explicitly. TCP response mismatches also fail explicitly.
@@ -108,7 +109,8 @@ Messages are limited to 65535 bytes and 1024 total questions and records.
 Input errors use `:type :portable/invalid-input`, the qualified operation, and a reason.
 Protocol and callback errors use `:type :portable/dns-error` with the same fields.
 Reasons include `:timeout`, `:cancelled`, `:invalid-compression`, `:incomplete-message`, `:incomplete-response`, and `:message-too-large`.
-Transport reasons can also propagate. Native causes are retained; error data excludes query names and response bodies.
+Transport and entropy reasons can also propagate. Entropy failures reach the callback before socket creation.
+Native causes are retained; error data excludes query names and response bodies.
 Browser `query!` throws `:type :portable/unsupported-operation` with `:operation :portable.dns/query!`.
 Node requires ClojureScript's CommonJS `:nodejs` target. Browser workers do not gain raw socket access.
 

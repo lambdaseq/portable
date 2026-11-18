@@ -44,6 +44,7 @@ jar tf libs/portable-tls/target/portable-tls-0.1.0.jar
 jar tf libs/portable-http/target/portable-http-0.1.0.jar
 jar tf libs/portable-udp/target/portable-udp-0.1.0.jar
 jar tf libs/portable-dns/target/portable-dns-0.1.0.jar
+jar tf libs/portable-random/target/portable-random-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
@@ -51,6 +52,7 @@ Shared contracts run on JVM Clojure, Babashka, Node, and headless Chrome.
 Browser environment, filesystem, TCP, TLS, and UDP operations are verified to fail explicitly.
 Browser HTTP uses Fetch; process-runtime HTTP uses portable's HTTP/1.1 stack over TCP and TLS.
 DNS codecs run on every verified runtime. Raw DNS queries use portable UDP/TCP and fail explicitly in browsers.
+Secure random bytes and uniform bounded integers use native entropy sources on all four verified runtimes.
 
 ### Troubleshooting
 
@@ -73,6 +75,7 @@ DNS codecs run on every verified runtime. Raw DNS queries use portable UDP/TCP a
 | `libs/portable-http/`           | Native HTTP/1.1 and browser Fetch, `lambdaseq/portable-http`   |
 | `libs/portable-udp/`            | Asynchronous IPv4 datagrams, `lambdaseq/portable-udp`         |
 | `libs/portable-dns/`            | DNS codecs and UDP/TCP queries, `lambdaseq/portable-dns`       |
+| `libs/portable-random/`         | Secure bytes and bounded integers, `lambdaseq/portable-random` |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -106,6 +109,8 @@ For UDP datagrams alone, use `lambdaseq/portable-udp` with `:local/root "../port
 See the [UDP payload, deadline, and browser contract](libs/portable-udp/README.md).
 For DNS alone, use `lambdaseq/portable-dns` with `:local/root "../portable/libs/portable-dns"`.
 See the [DNS codec, query, and runtime contract](libs/portable-dns/README.md).
+For secure randomness alone, use `lambdaseq/portable-random` with `:local/root "../portable/libs/portable-random"`.
+See the [random generation limits and runtime sources](libs/portable-random/README.md).
 
 ## Portability contract
 

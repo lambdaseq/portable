@@ -95,7 +95,14 @@
                    :test-runner portable.dns-test-runner
                    :browser-tests "target/browser.html"
                    :lib lambdaseq/portable-dns
-                   :description "DNS wire codecs and asynchronous UDP/TCP queries."}})
+                   :description "DNS wire codecs and asynchronous UDP/TCP queries."}
+    :portable-random {:kind :lib
+                      :dir "libs/portable-random"
+                      :platform :cljc
+                      :test-runner portable.random-test-runner
+                      :browser-tests "target/browser.html"
+                      :lib lambdaseq/portable-random
+                      :description "Secure random byte vectors and uniform bounded integers."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
