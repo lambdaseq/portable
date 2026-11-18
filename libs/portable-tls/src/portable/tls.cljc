@@ -4,8 +4,10 @@
             [portable.bytes :as bytes]
             [portable.tcp.internal :as transport]
             [portable.tls.internal :as internal]
-            #?(:clj [portable.tcp.jvm :as io] :cljs [portable.tcp.node :as io])
-            #?(:clj [portable.tls.jvm :as backend] :cljs [portable.tls.node :as backend])))
+            #?(:clj  [portable.tcp.jvm :as io]
+               :cljs [portable.tcp.node :as io])
+            #?(:clj  [portable.tls.jvm :as backend]
+               :cljs [portable.tls.node :as backend])))
 
 (defn- require-supported [operation]
   (when-not #?(:clj true :cljs (backend/supported?) :default false)

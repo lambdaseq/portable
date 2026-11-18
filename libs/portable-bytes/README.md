@@ -21,14 +21,14 @@ Native arrays, lists, nil, and out-of-range values are rejected.
 All conversions are pure and synchronous. No function changes its input.
 `byte-vector?` checks this shared representation without conversion, so filesystem writes reuse the same validation.
 
-| Function | Input | Output |
-| --- | --- | --- |
-| `encode-utf8` | Unicode string | Byte vector |
-| `decode-utf8` | Byte vector | Unicode string |
-| `encode-base64` | Byte vector | Standard padded Base64 string |
-| `decode-base64` | Canonical padded Base64 string | Byte vector |
-| `encode-hex` | Byte vector | Lowercase hex string |
-| `decode-hex` | Even-length hex string, either case | Byte vector |
+| Function        | Input                               | Output                        |
+|-----------------|-------------------------------------|-------------------------------|
+| `encode-utf8`   | Unicode string                      | Byte vector                   |
+| `decode-utf8`   | Byte vector                         | Unicode string                |
+| `encode-base64` | Byte vector                         | Standard padded Base64 string |
+| `decode-base64` | Canonical padded Base64 string      | Byte vector                   |
+| `encode-hex`    | Byte vector                         | Lowercase hex string          |
+| `decode-hex`    | Even-length hex string, either case | Byte vector                   |
 
 Empty strings and vectors convert to their empty counterpart.
 UTF-8 preserves BOMs, NULs, and Unicode composition. It rejects malformed byte sequences and unpaired UTF-16 surrogates.
@@ -40,14 +40,14 @@ Invalid input throws `ex-info` with `:type :portable/invalid-input`, `:operation
 Operations are namespaced keywords such as `:portable.bytes/decode-utf8`.
 Error data excludes the input value.
 
-| Reason | Meaning |
-| --- | --- |
-| `:expected-string` | The operation requires a string |
+| Reason                  | Meaning                                           |
+|-------------------------|---------------------------------------------------|
+| `:expected-string`      | The operation requires a string                   |
 | `:expected-byte-vector` | The operation requires a vector of unsigned bytes |
-| `:invalid-unicode` | The string contains an unpaired surrogate |
-| `:invalid-utf8` | Bytes are not valid UTF-8 |
-| `:invalid-base64` | Text is not canonical padded Base64 |
-| `:invalid-hex` | Text is not even-length hex |
+| `:invalid-unicode`      | The string contains an unpaired surrogate         |
+| `:invalid-utf8`         | Bytes are not valid UTF-8                         |
+| `:invalid-base64`       | Text is not canonical padded Base64               |
+| `:invalid-hex`          | Text is not even-length hex                       |
 
 ## Runtimes
 
@@ -56,7 +56,8 @@ JavaScript uses `TextEncoder`, fatal `TextDecoder`, and Closure's Base64 codec.
 Hex conversion is shared Clojure code.
 Missing JavaScript text codecs throw `ex-info` with `:type :portable/unsupported-operation` and `:operation`.
 
-Shared contracts run on Clojure 1.12.4, Babashka 1.13.219, and ClojureScript 1.11.132 in Node.js 24.22.1 and Chrome 157.0.8103.78.
+Shared contracts run on Clojure 1.12.4, Babashka 1.13.219, and ClojureScript 1.11.132 in Node.js 24.22.1 and Chrome
+157.0.8103.78.
 The JVM build requires JDK 17+; verification uses JDK 25.0.3.
 Node.js 18+ supplies the required JavaScript globals.
 Firefox, Safari, ClojureCLR, ClojureDart, and jank are unverified.
