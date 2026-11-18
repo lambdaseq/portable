@@ -17,6 +17,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-udp` owns `portable.udp`, with asynchronous native IPv4 unicast datagrams and explicit browser rejection.
 `lambdaseq/portable-dns` owns `portable.dns`, with shared wire codecs and native UDP/TCP queries.
 `lambdaseq/portable-random` owns `portable.random`, with secure byte vectors and uniform bounded integers.
+`lambdaseq/portable-crypto` owns `portable.crypto`, with asynchronous SHA-256/SHA-512 digests and HMACs.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -42,6 +43,7 @@ HTTP depends on bytes, TCP, and TLS for its request and response contract.
 UDP depends on bytes for its payload representation. It is independent of the stream transport libraries.
 DNS depends on bytes, UDP, TCP, and random generation. Protocol codecs remain usable without native socket or entropy support.
 Random generation has no runtime dependency on another family. It shares byte-vector values with bytes and transport APIs.
+Crypto depends on bytes for its input and output contract. It uses native security primitives without depending on network families.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -75,6 +77,9 @@ DNS encoding and decoding remain pure shared operations. Host DNS resolvers and 
 DNS transaction IDs use `portable-random`; a query reuses its ID across fallback.
 Secure random generation uses native platform entropy and shared rejection sampling for uniform integers.
 Source failures fail explicitly. Byte requests are capped at 1 MiB; integer bounds fit JavaScript's safe integer range.
+Crypto uses byte vectors and error-first callbacks on all verified runtimes, including browser Web Crypto.
+Messages may be empty; HMAC keys must be nonempty. Each input is capped at 1 MiB.
+Validation failures throw synchronously. Runtime failures and missing crypto APIs reach the callback asynchronously.
 
 ## Adding an API
 
@@ -97,4 +102,5 @@ HTTP exposes bounded asynchronous requests; see the [HTTP contract](../libs/port
 UDP exposes asynchronous IPv4 datagrams; see the [UDP contract](../libs/portable-udp/README.md).
 DNS exposes codecs and explicit-server queries; see the [DNS contract](../libs/portable-dns/README.md).
 Random generation exposes `generate-bytes!` and `generate-int!`; see the [random contract](../libs/portable-random/README.md).
+Crypto exposes `digest!` and `hmac!`; see the [crypto contract](../libs/portable-crypto/README.md).
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

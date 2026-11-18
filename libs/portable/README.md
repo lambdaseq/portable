@@ -17,6 +17,7 @@ Use `lambdaseq/portable-http` for HTTP requests over portable transports or brow
 Use `lambdaseq/portable-udp` for asynchronous IPv4 unicast datagrams; it includes `portable-bytes`.
 Use `lambdaseq/portable-dns` for DNS codecs and queries over `portable-udp` and `portable-tcp`.
 Use `lambdaseq/portable-random` for secure byte vectors and uniform bounded integers.
+Use `lambdaseq/portable-crypto` for asynchronous SHA-256/SHA-512 digests and HMACs over byte vectors.
 
 Run commands from the workspace root:
 

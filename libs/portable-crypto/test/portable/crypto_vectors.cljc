@@ -1,0 +1,121 @@
+(ns portable.crypto-vectors
+  "SHA examples and RFC 4231 HMAC vectors, with binary and boundary reference cases."
+  (:require [portable.bytes :as bytes]))
+
+;; Standard SHA examples: https://www.rfc-editor.org/rfc/rfc6234.html
+(def DIGEST_CASES
+  [{:data []
+    :sha-256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    :sha-512 "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"}
+   {:data (bytes/encode-utf8 "abc")
+    :sha-256 "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    :sha-512 "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"}
+   {:data (bytes/encode-utf8 "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")
+    :sha-256 "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+    :sha-512 "204a8fc6dda82f0a0ced7beb8e08a41657c16ef468b228a8279be331a703c33596fd15c13b1b07f9aa1d3bea57789ca031ad85c7a71dd70354ec631238ca3445"}
+   {:data (vec (range 256))
+    :sha-256 "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880"
+    :sha-512 "1e7b80bc8edc552c8feeb2780e111477e5bc70465fac1a77b29b35980c3f0ce4a036a6c9462036824bd56801e62af7e9feba5c22ed8a5af877bf7de117dcac6d"}
+   {:data (bytes/encode-utf8 "λ\u0000😀")
+    :sha-256 "44a957bd809f0ab919c228ce98fe8b1e17feeb0602416599a9ef644a79520940"
+    :sha-512 "0ed26bfbd58f9123d6860369555dafdc09697aaca5782fc6e079b64b06a47cc97d22f32eb54a912d41f76a43d59fea640d43a28da6301dab30c55f51096d5a5b"}
+   {:data (vec (repeat 1000000 97))
+    :sha-256 "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0"
+    :sha-512 "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b"}
+   {:data (vec (repeat 1048576 0))
+    :sha-256 "30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58"
+    :sha-512 "d6292685b380e338e025b3415a90fe8f9d39a46e7bdba8cb78c50a338cefca741f69e4e46411c32de1afdedfb268e579a51f81ff85e56f55b0ee7c33fe8c25c9"}
+   {:data (vec (repeat 55 97))
+    :sha-256 "9f4390f8d30c2dd92ec9f095b65e2b9ae9b0a925a5258e241c9f1e910f734318"
+    :sha-512 "b0220c772cbf6c1822e2cb38a437d0e1d58772417a4bbb21c961364f8b6143e05aa6316dca8d1d7b19e16448419076395f6086cb55101fbd6d5497b148e1745f"}
+   {:data (vec (repeat 56 97))
+    :sha-256 "b35439a4ac6f0948b6d6f9e3c6af0f5f590ce20f1bde7090ef7970686ec6738a"
+    :sha-512 "962b64aae357d2a4fee3ded8b539bdc9d325081822b0bfc55583133aab44f18bafe11d72a7ae16c79ce2ba620ae2242d5144809161945f1367f41b3972e26e04"}
+   {:data (vec (repeat 63 97))
+    :sha-256 "7d3e74a05d7db15bce4ad9ec0658ea98e3f06eeecf16b4c6fff2da457ddc2f34"
+    :sha-512 "c1b0f5c6d3b03dfe4a2602e67242f54e344090b66e01100a469b129f583f016c7e27dddeaa438393dcc7ec54b0b57c9ba7af007f9b56db5f6fb677d972a31362"}
+   {:data (vec (repeat 64 97))
+    :sha-256 "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb"
+    :sha-512 "01d35c10c6c38c2dcf48f7eebb3235fb5ad74a65ec4cd016e2354c637a8fb49b695ef3c1d6f7ae4cd74d78cc9c9bcac9d4f23a73019998a7f73038a5c9b2dbde"}
+   {:data (vec (repeat 65 97))
+    :sha-256 "635361c48bb9eab14198e76ea8ab7f1a41685d6ad62aa9146d301d4f17eb0ae0"
+    :sha-512 "b83086cd8494e55708ad7ecd82dfb4bca1bda61ecbb7caf0c68967902e709345e5d8305eb7ac0d588afc6cbb75161aa9c8c7e0ea986bd833dafe5e1ccd37345a"}
+   {:data (vec (repeat 111 97))
+    :sha-256 "6374f73208854473827f6f6a3f43b1f53eaa3b82c21c1a6d69a2110b2a79baad"
+    :sha-512 "fa9121c7b32b9e01733d034cfc78cbf67f926c7ed83e82200ef86818196921760b4beff48404df811b953828274461673c68d04e297b0eb7b2b4d60fc6b566a2"}
+   {:data (vec (repeat 112 97))
+    :sha-256 "f54353008a2553262ecdc4a34749563ba0950e8b0fc8652780b0a614b99683c1"
+    :sha-512 "c01d080efd492776a1c43bd23dd99d0a2e626d481e16782e75d54c2503b5dc32bd05f0f1ba33e568b88fd2d970929b719ecbb152f58f130a407c8830604b70ca"}
+   {:data (vec (repeat 127 97))
+    :sha-256 "c57e9278af78fa3cab38667bef4ce29d783787a2f731d4e12200270f0c32320a"
+    :sha-512 "828613968b501dc00a97e08c73b118aa8876c26b8aac93df128502ab360f91bab50a51e088769a5c1eff4782ace147dce3642554199876374291f5d921629502"}
+   {:data (vec (repeat 128 97))
+    :sha-256 "6836cf13bac400e9105071cd6af47084dfacad4e5e302c94bfed24e013afb73e"
+    :sha-512 "b73d1929aa615934e61a871596b3f3b33359f42b8175602e89f7e06e5f658a243667807ed300314b95cacdd579f3e33abdfbe351909519a846d465c59582f321"}
+   {:data (vec (repeat 129 97))
+    :sha-256 "c12cb024a2e5551cca0e08fce8f1c5e314555cc3fef6329ee994a3db752166ae"
+    :sha-512 "4f681e0bd53cda4b5a2041cc8a06f2eabde44fb16c951fbd5b87702f07aeab611565b19c47fde30587177ebb852e3971bbd8d3fd30da18d71037dfbd98420429"}])
+
+;; RFC 4231 cases 1-7; case 5 includes the full tag beyond its published prefix.
+;; Additional expected values were computed independently with Python hashlib/hmac.
+(def HMAC_CASES
+  [{:key (vec (repeat 20 11))
+    :data (bytes/encode-utf8 "Hi There")
+    :sha-256 "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+    :sha-512 "87aa7cdea5ef619d4ff0b4241a1d6cb02379f4e2ce4ec2787ad0b30545e17cdedaa833b7d6b8a702038b274eaea3f4e4be9d914eeb61f1702e696c203a126854"}
+   {:key (bytes/encode-utf8 "Jefe")
+    :data (bytes/encode-utf8 "what do ya want for nothing?")
+    :sha-256 "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+    :sha-512 "164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737"}
+   {:key (vec (repeat 20 170))
+    :data (vec (repeat 50 221))
+    :sha-256 "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe"
+    :sha-512 "fa73b0089d56a284efb0f0756c890be9b1b5dbdd8ee81a3655f83e33b2279d39bf3e848279a722c806b485a47e67c807b946a337bee8942674278859e13292fb"}
+   {:key (vec (range 1 26))
+    :data (vec (repeat 50 205))
+    :sha-256 "82558a389a443c0ea4cc819899f2083a85f0faa3e578f8077a2e3ff46729665b"
+    :sha-512 "b0ba465637458c6990e5a8c5f61d4af7e576d97ff94b872de76f8050361ee3dba91ca5c11aa25eb4d679275cc5788063a5f19741120c4f2de2adebeb10a298dd"}
+   {:key (vec (repeat 20 12))
+    :data (bytes/encode-utf8 "Test With Truncation")
+    :sha-256 "a3b6167473100ee06e0c796c2955552bfa6f7c0a6a8aef8b93f860aab0cd20c5"
+    :sha-512 "415fad6271580a531d4179bc891d87a650188707922a4fbb36663a1eb16da008711c5b50ddd0fc235084eb9d3364a1454fb2ef67cd1d29fe6773068ea266e96b"}
+   {:key (vec (repeat 131 170))
+    :data (bytes/encode-utf8 "Test Using Larger Than Block-Size Key - Hash Key First")
+    :sha-256 "60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54"
+    :sha-512 "80b24263c7c1a3ebb71493c1dd7be8b49b46d1f41b4aeec1121b013783f8f3526b56d037e05f2598bd0fd2215d6a1e5295e64f73f63f0aec8b915a985d786598"}
+   {:key (vec (repeat 131 170))
+    :data (bytes/encode-utf8 "This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.")
+    :sha-256 "9b09ffa71b942fcb27635fbcd5b0e944bfdc63644f0713938a7f51535c3a35e2"
+    :sha-512 "e37b6a775dc87dbaa4dfa9f96e5e3ffddebd71f8867289865df5a32d20cdc944b6022cac3c4982b10d5eeb55c3e4de15134676fb6de0446065c97440fa8c6a58"}
+   {:key [0]
+    :data []
+    :sha-256 "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad"
+    :sha-512 "b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47"}
+   {:key (vec (repeat 63 170))
+    :data (vec (range 256))
+    :sha-256 "a14e266395755f1125270d44b45c268588cb2e87738683829a9ea05107fa8ffb"
+    :sha-512 "545668c5a2487162ad30f9ec833f0ee4f68b6702c9ff3e1d7db88f700fb54a3d055f906d632fe4d1a641c6a5f1ef111ca9915b24bf53e251ef6a2fd7af9eb2dc"}
+   {:key (vec (repeat 64 170))
+    :data (vec (range 256))
+    :sha-256 "6b7ae4057090a0ea1186cbbab550def14d7a0aa1ac541b7d3754e19303846aaf"
+    :sha-512 "9139fbefb4b824f278ae770e2387012821d73b744da4b4bd3dd1dbca179dca729d60398f8732f4e3ac0e7bab6b813c63b4b47d09ce4f88fc9235759ddedbcaa5"}
+   {:key (vec (repeat 65 170))
+    :data (vec (range 256))
+    :sha-256 "95915aa0cf807c29b8fcea5e80d6558ef1aea632a0f43cda381bf0f55f236c7d"
+    :sha-512 "8639ddc660de04901aa44d032436b3f584e1df72cb10f89ff30a20d1149286f53d5c79a91669bbeb2cda17eaf6c96f38f042beecbd2d5e0be66f6b491f341b9d"}
+   {:key (vec (repeat 127 170))
+    :data (vec (range 256))
+    :sha-256 "a96c5d25761d63e0ad11f0822626cfd5e1e8ad4be4ce5b1eb81ecc2337ca37a6"
+    :sha-512 "2df67d389ab5c8550f9336157fa98d1d2b1a366d3faa953869c199dcd116932089929dd364ee6362f82052471049c4a5e42de828996d5fa00121503523459e23"}
+   {:key (vec (repeat 128 170))
+    :data (vec (range 256))
+    :sha-256 "69dc4f85c2c16cef84b63bd9b8a7f780e159d8057163608c98f26858e6ead76b"
+    :sha-512 "a5a5c107a871189e6fcc03ee1b43cba5072eaf32b396900380ae92b897eca8068c9c0fc48d2a5fb8ad7ec30217dea83d2d0e3eb7487e35ff7c38867a68670562"}
+   {:key (vec (repeat 129 170))
+    :data (vec (range 256))
+    :sha-256 "887fedcf91879794c520b14354b58ec63831b3f3d8c35060d4ea02f2049c284a"
+    :sha-512 "168d65c46d6bf76138c266f8bd2f35979e8eece6c099747b911f256fafd042fd37025697b0a63bb0620ad59977a0fe68db977e494ae1d8e2c8c410b68f52f1ae"}
+   {:key (vec (repeat 1048576 0))
+    :data [0 255 128]
+    :sha-256 "e58fab42e249db6a43ba984dd4ea6ca72c8574830576f1884fa6c584aa362a8b"
+    :sha-512 "111f5f042d155a90f45a0b8c2e29778e537e7fb376ba9f0451d9764acf4babdb32d088cfed48720472c9a6093ddb2bfc8f5f2bd1790588af28af6360ff5fbb54"}])

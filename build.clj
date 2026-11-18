@@ -102,7 +102,14 @@
                       :test-runner portable.random-test-runner
                       :browser-tests "target/browser.html"
                       :lib lambdaseq/portable-random
-                      :description "Secure random byte vectors and uniform bounded integers."}})
+                      :description "Secure random byte vectors and uniform bounded integers."}
+    :portable-crypto {:kind :lib
+                      :dir "libs/portable-crypto"
+                      :platform :cljc
+                      :test-runner portable.crypto-test-runner
+                      :browser-tests "target/browser.html"
+                      :lib lambdaseq/portable-crypto
+                      :description "Asynchronous SHA-256/SHA-512 digests and HMACs."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)

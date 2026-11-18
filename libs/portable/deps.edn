@@ -9,7 +9,8 @@
         lambdaseq/portable-http {:local/root "../portable-http"}
         lambdaseq/portable-udp {:local/root "../portable-udp"}
         lambdaseq/portable-dns {:local/root "../portable-dns"}
-        lambdaseq/portable-random {:local/root "../portable-random"}}
+        lambdaseq/portable-random {:local/root "../portable-random"}
+        lambdaseq/portable-crypto {:local/root "../portable-crypto"}}
  :aliases
  {:repl
   {:extra-deps {nrepl/nrepl {:mvn/version "1.3.0"}}
