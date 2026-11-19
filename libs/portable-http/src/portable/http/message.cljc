@@ -49,6 +49,20 @@
     {:length (when lengths (parse-number (first lengths) 10 9007199254740991 :malformed-response))
      :transfer (some->> encodings (str/join ",") str/lower-case)}))
 
+(defn trim-ows [value] (str/replace value #"^[ \t]+|[ \t]+$" ""))
+
+(defn parse-field
+  ([line] (parse-field line :malformed-response))
+  ([line reason]
+   (let [colon (str/index-of line ":")
+         name (when colon (subs line 0 colon))
+         value (when colon (subs line (inc colon)))]
+     (when-not (and name (re-matches TOKEN_PATTERN name)
+                    (every? #(let [code (get-code %)]
+                               (or (= code 9) (<= 32 code 126) (<= 128 code 255))) value))
+       (throw-protocol-error reason))
+     [(str/lower-case name) (trim-ows value)])))
+
 (defn- parse-port [port scheme]
   (if (nil? port)
     (if (= scheme "https") 443 80)
@@ -81,8 +95,6 @@
     {:url (str scheme "://" authority target) :scheme scheme :host (str/lower-case host)
      :port (parse-port (or bracket-port dns-port) scheme) :authority authority :target target}))
 
-(defn trim-ows [value] (str/replace value #"^[ \t]+|[ \t]+$" ""))
-
 (defn parse-content-codings [headers]
   (let [values (get headers "content-encoding")
         codings (when values (mapv #(-> % trim-ows str/lower-case) (str/split (str/join "," values) #"," -1)))]
@@ -90,19 +102,21 @@
       (throw-protocol-error :unsupported-content-encoding))
     (mapv keyword (remove #{"identity"} codings))))
 
-(defn- parse-headers [headers]
-  (when-not (map? headers) (throw-invalid-input :invalid-headers))
-  (when (> (count headers) 100) (throw-invalid-input :invalid-headers))
-  (reduce-kv
-   (fn [result name value]
-     (when-not (and (string? name) (re-matches TOKEN_PATTERN name) (string? value)
-                    (every? #(let [code (get-code %)] (or (= 9 code) (<= 32 code 126))) value))
-       (throw-invalid-input :invalid-headers))
-     (let [normalized (str/lower-case name)]
-       (when (contains? result normalized) (throw-invalid-input :invalid-headers))
-       (when (contains? MANAGED_HEADERS normalized) (throw-invalid-input :managed-header))
-       (assoc result normalized (trim-ows value))))
-   {} headers))
+(defn parse-headers
+  ([headers] (parse-headers headers :portable.http/request! MANAGED_HEADERS))
+  ([headers operation managed]
+    (when-not (map? headers) (transport/throw-invalid-input operation :invalid-headers))
+    (when (> (count headers) 100) (transport/throw-invalid-input operation :invalid-headers))
+    (reduce-kv
+     (fn [result name value]
+       (when-not (and (string? name) (re-matches TOKEN_PATTERN name) (string? value)
+                      (every? #(let [code (get-code %)] (or (= 9 code) (<= 32 code 126))) value))
+         (transport/throw-invalid-input operation :invalid-headers))
+       (let [normalized (str/lower-case name)]
+         (when (contains? result normalized) (transport/throw-invalid-input operation :invalid-headers))
+         (when (contains? managed normalized) (transport/throw-invalid-input operation :managed-header))
+         (assoc result normalized (trim-ows value))))
+     {} headers)))
 
 (defn prepare-request [options callback]
   (transport/validate-options :portable.http/request! options

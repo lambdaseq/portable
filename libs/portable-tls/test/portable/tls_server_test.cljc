@@ -1,12 +1,11 @@
 (ns portable.tls-server-test
   (:require [portable.tls :as tls]
             [portable.tcp :as tcp]
-            #?(:clj [portable.tcp.internal :as transport])
+            [portable.process-fixture :as process-fixture]
             [portable.tls-fixture :as fixture]
             [portable.tls-test :as client-contract]
             #?(:clj [clojure.test :refer [deftest is]]
-               :cljs [cljs.test :refer-macros [deftest is async]]))
-  #?(:clj (:import [java.util.concurrent TimeUnit])))
+               :cljs [cljs.test :refer-macros [deftest is async]])))
 
 (def CERT "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----")
 (def KEY "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----")
@@ -185,19 +184,6 @@
              (tcp/close! raw))))
         (keep! tcp/close! (tcp/connect! (tcp/local-address listener) (fn [error _] (is (contains? #{nil :closed} (:reason (ex-data error)))))))))))
 
-(defn- start-native-client! [port version ca-file callback]
-  #?(:clj
-     (let [process (-> (ProcessBuilder. ^java.util.List ["node" "test/fixtures/client.cjs" (str port) version ca-file])
-                       (.inheritIO) (.start))]
-       (transport/dispatch! #(do (when-not (.waitFor process 10 TimeUnit/SECONDS) (.destroyForcibly process))
-                                  (callback (.waitFor process))))
-       (fn [_] (.destroy process)))
-     :cljs
-     (let [process (.spawn (js/require "node:child_process") "node"
-                          #js ["test/fixtures/client.cjs" (str port) version ca-file] #js {:stdio "inherit"})]
-       (.once process "exit" (fn [code _] (callback code)))
-       (fn [_] (.kill process)))))
-
 (deftest native-client-tls12-tls13-and-server-alpn-preference
   (when-not (is-browser?)
     (doseq [[version ec?] [["TLSv1.2" false] ["TLSv1.3" false] ["TLSv1.3" true]]]
@@ -227,7 +213,7 @@
                                                   (is (nil? error))
                                                   (tls/shutdown-output! server (fn [error _] (is (contains? #{nil :closed} (:reason (ex-data error))))))))))))))]
                  (read-next! [])))))
-          (keep! (start-native-client! (:port (tcp/local-address listener)) version (if ec? "ec-server.pem" "ca.pem")
+          (keep! (process-fixture/run-client! ["node" "test/fixtures/client.cjs" (str (:port (tcp/local-address listener))) version (if ec? "ec-server.pem" "ca.pem")]
                                        (fn [exit] (is (= 0 exit)) (finish!))) nil))))))
 
 (deftest server-validation-and-browser-rejection

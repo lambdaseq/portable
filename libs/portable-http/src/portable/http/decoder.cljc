@@ -1,12 +1,16 @@
 (ns portable.http.decoder
-  "Private incremental HTTP/1.x response decoder."
+  "Private incremental HTTP/1.x request and response framing."
   (:require [clojure.string :as str]
-            [portable.http.message :as message]))
+            [portable.http.message :as message]
+            [portable.http.server-message :as server-message]))
 
 (defn create-decoder [request]
-  {:phase :head :buffer [] :body [] :method (:method request) :max-body-bytes (:max-body-bytes request)
+  {:kind :response :phase :head :buffer [] :body [] :method (:method request) :max-body-bytes (:max-body-bytes request)
    :max-encoded-body-bytes (:max-encoded-body-bytes request (:max-body-bytes request))
    :interims 0 :trailer-size 0 :trailer-count 0})
+
+(defn create-request-decoder [options]
+  (assoc (create-decoder {:max-body-bytes (:max-body-bytes options)}) :kind :request))
 
 (defn- find-sequence [data pattern]
   (let [limit (- (count data) (count pattern))]
@@ -18,16 +22,6 @@
 (defn- drop-buffer [state size]
   (assoc state :buffer (into [] (subvec (:buffer state) size))))
 
-(defn- parse-field [line]
-  (let [colon (str/index-of line ":")
-        name (when colon (subs line 0 colon))
-        value (when colon (subs line (inc colon)))]
-    (when-not (and name (re-matches message/TOKEN_PATTERN name)
-                   (every? #(let [code (message/get-code %)]
-                              (or (= code 9) (<= 32 code 126) (<= 128 code 255))) value))
-      (message/throw-protocol-error :malformed-response))
-    [(str/lower-case name) (message/trim-ows value)]))
-
 (defn- parse-head [data]
   (let [[status-line & lines] (str/split (message/decode-latin1 data) #"\r\n" -1)
         [_ version status] (re-matches #"HTTP/(1\.[01]) ([1-5][0-9]{2}) [\t\x20-\x7e\x80-\xff]*" status-line)]
@@ -35,11 +29,13 @@
     (when (> (count lines) 100) (message/throw-protocol-error :too-many-headers))
     {:version version :status (message/parse-number status 10 599 :malformed-response)
      :headers (reduce (fn [headers line]
-                        (let [[name value] (parse-field line)] (update headers name (fnil conj []) value)))
+                        (let [[name value] (message/parse-field line)] (update headers name (fnil conj []) value)))
                       {} lines)}))
 
-(defn- finish-response [state]
-  (assoc state :phase :done :response {:status (:status state) :headers (:headers state) :body (:body state)}))
+(defn- finish-message [state]
+  (if (= :request (:kind state))
+    (assoc state :phase :done :request (select-keys state [:method :target :version :headers :body]))
+    (assoc state :phase :done :response {:status (:status state) :headers (:headers state) :body (:body state)})))
 
 (defn- select-framing [state {:keys [status version headers]}]
   (let [lengths (get headers "content-length")
@@ -59,7 +55,7 @@
       (message/throw-protocol-error :redirect-blocked)
 
       (or (= "HEAD" (:method state)) (#{204 304} status))
-      (finish-response (assoc next-state :buffer []))
+      (finish-message (assoc next-state :buffer []))
 
       :else
       (let [codings (message/parse-content-codings headers)
@@ -69,7 +65,7 @@
         (cond
           transfer (assoc framed :phase :chunk-size)
           length (do (when (> length limit) (message/throw-protocol-error :body-too-large))
-                     (if (zero? length) (finish-response framed)
+                     (if (zero? length) (finish-message framed)
                          (assoc framed :phase :fixed :remaining length)))
           :else (assoc framed :phase :close))))))
 
@@ -83,7 +79,12 @@
 (defn- read-head [state]
   (if-let [end (find-sequence (:buffer state) [13 10 13 10])]
     (do (when (> (+ end 4) 65536) (message/throw-protocol-error :headers-too-large))
-        (select-framing (drop-buffer state (+ end 4)) (parse-head (subvec (:buffer state) 0 end))))
+        (let [head (subvec (:buffer state) 0 end)
+              state (drop-buffer state (+ end 4))]
+          (if (= :request (:kind state))
+            (let [framed (server-message/select-framing state (server-message/parse-head head))]
+              (if (= :done (:phase framed)) (finish-message framed) framed))
+            (select-framing state (parse-head head)))))
     (do (when (> (count (:buffer state)) 65536) (message/throw-protocol-error :headers-too-large)) state)))
 
 (defn- read-chunk-size [state]
@@ -103,8 +104,8 @@
           next-state (assoc (drop-buffer state (+ end 2)) :trailer-size size)]
       (when (> size 65536) (message/throw-protocol-error :headers-too-large))
       (if (zero? end)
-        (finish-response next-state)
-        (let [[name _] (parse-field (message/decode-latin1 (subvec (:buffer state) 0 end)))]
+        (finish-message next-state)
+        (let [[name _] (message/parse-field (message/decode-latin1 (subvec (:buffer state) 0 end)))]
           (when (or (contains? message/MANAGED_HEADERS name) (= name "content-encoding"))
             (message/throw-protocol-error :invalid-trailer))
           (when (>= (:trailer-count state) 100) (message/throw-protocol-error :too-many-headers))
@@ -121,7 +122,7 @@
     (let [size (min (:remaining state) (count (:buffer state)))
           next-state (-> state (append-body size) (update :remaining - size))]
       (if (zero? (:remaining next-state))
-        (if (= :fixed (:phase state)) (finish-response next-state) (assoc next-state :phase :chunk-crlf))
+        (if (= :fixed (:phase state)) (finish-message next-state) (assoc next-state :phase :chunk-crlf))
         next-state))
     :chunk-crlf
     (if (< (count (:buffer state)) 2)
@@ -142,5 +143,5 @@
   (let [processed (feed state [])]
     (case (:phase processed)
       :done processed
-      :close (finish-response processed)
+      :close (finish-message processed)
       (message/throw-protocol-error :incomplete-response))))

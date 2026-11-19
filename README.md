@@ -76,7 +76,7 @@ Gzip and zlib-wrapped DEFLATE use bounded asynchronous byte-vector operations on
 | `libs/portable-fs/`             | Synchronous filesystem access, `lambdaseq/portable-fs`        |
 | `libs/portable-tcp/`            | TCP connections and listeners, `lambdaseq/portable-tcp`            |
 | `libs/portable-tls/`            | TLS clients and server handshakes, `lambdaseq/portable-tls`               |
-| `libs/portable-http/`           | Native HTTP/1.1 and browser Fetch, `lambdaseq/portable-http`   |
+| `libs/portable-http/`           | HTTP clients and HTTP/1.1 serving, `lambdaseq/portable-http`   |
 | `libs/portable-udp/`            | Asynchronous IPv4 datagrams, `lambdaseq/portable-udp`         |
 | `libs/portable-dns/`            | DNS codecs and UDP/TCP queries, `lambdaseq/portable-dns`       |
 | `libs/portable-random/`         | Secure bytes and bounded integers, `lambdaseq/portable-random` |
@@ -109,8 +109,8 @@ For TCP alone, use `lambdaseq/portable-tcp` with `:local/root "../portable/libs/
 See the [TCP listeners, callbacks, and connection lifecycle](libs/portable-tcp/README.md).
 For TLS alone, use `lambdaseq/portable-tls` with `:local/root "../portable/libs/portable-tls"`.
 See the [TLS client verification, server handshakes, and runtime limits](libs/portable-tls/README.md).
-For HTTP requests alone, use `lambdaseq/portable-http` with `:local/root "../portable/libs/portable-http"`.
-See the [HTTP API and Fetch limitations](libs/portable-http/README.md).
+For HTTP alone, use `lambdaseq/portable-http` with `:local/root "../portable/libs/portable-http"`.
+See the [HTTP clients, serving connections, and browser limits](libs/portable-http/README.md).
 For UDP datagrams alone, use `lambdaseq/portable-udp` with `:local/root "../portable/libs/portable-udp"`.
 See the [UDP payload, deadline, and browser contract](libs/portable-udp/README.md).
 For DNS alone, use `lambdaseq/portable-dns` with `:local/root "../portable/libs/portable-dns"`.

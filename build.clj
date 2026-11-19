@@ -81,7 +81,7 @@
                     :browser-tests "target/browser.html"
                     :browser-server ["node" "test/fixtures/server.cjs"]
                     :lib lambdaseq/portable-http
-                    :description "HTTP/1.1 over portable TCP/TLS with browser Fetch support."}
+                    :description "HTTP/1.1 clients and serving over TCP/TLS, with browser Fetch clients."}
     :portable-udp {:kind :lib
                    :dir "libs/portable-udp"
                    :platform :cljc

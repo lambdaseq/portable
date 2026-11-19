@@ -13,7 +13,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-fs` owns `portable.fs`, with synchronous native filesystem access and explicit browser rejection.
 `lambdaseq/portable-tcp` owns `portable.tcp`, with asynchronous native sockets and explicit browser rejection.
 `lambdaseq/portable-tls` owns `portable.tls`, with verified clients and server handshakes over portable TCP.
-`lambdaseq/portable-http` owns `portable.http`, with native HTTP/1.1 over portable transports and browser Fetch support.
+`lambdaseq/portable-http` owns `portable.http`, with native HTTP/1.1 clients and serving over portable transports, plus browser Fetch clients.
 `lambdaseq/portable-udp` owns `portable.udp`, with asynchronous native IPv4 unicast datagrams and explicit browser rejection.
 `lambdaseq/portable-dns` owns `portable.dns`, with shared wire codecs and native UDP/TCP queries.
 `lambdaseq/portable-random` owns `portable.random`, with secure byte vectors and uniform bounded integers.
@@ -40,7 +40,7 @@ CLR, Dart, and jank remain targets without verified adapters.
 Families share development test support. Filesystem byte and text operations depend on `portable-bytes` for their shared representation and encoding.
 TCP also depends on `portable-bytes` for unsigned byte vectors.
 TLS depends on TCP for connection establishment and lifecycle, and on bytes for plaintext vectors.
-HTTP depends on bytes, compression, TCP, and TLS for its request and response contract.
+HTTP depends on clocks, bytes, compression, TCP, and TLS for its request and response contract.
 UDP depends on bytes for its payload representation. It is independent of the stream transport libraries.
 DNS depends on bytes, UDP, TCP, and random generation. Protocol codecs remain usable without native socket or entropy support.
 Random generation has no runtime dependency on another family. It shares byte-vector values with bytes and transport APIs.
@@ -76,7 +76,10 @@ Client certificate-chain and peer-name verification are mandatory. Server-side c
 Process-runtime HTTP requests use portable's protocol stack. Browser requests wrap Fetch because ordinary pages lack raw TCP sockets.
 Native HTTP advertises gzip and deflate, bounds encoded and decoded bodies separately, and decodes within the request deadline.
 The public request and response shapes are shared; browser trust, headers, CORS, decoding, and wire protocol remain browser-controlled.
-Unavailable browser controls fail explicitly when detectable. Shared codec contracts still run in browsers.
+Serving takes ownership of one connected TCP or TLS handle, buffers one request, and calls an asynchronous application handler.
+Responses use bounded writes and close the connection. The HTTP deadline covers reads, handler wait, and writes.
+Browser HTTP serving fails explicitly. The application retains listener and connection-acceptance policy.
+Unavailable browser client controls fail explicitly when detectable. Shared codec contracts still run in browsers.
 UDP provides bind, send, receive, and close operations with error-first callbacks and sender address metadata.
 It preserves datagram boundaries, including empty packets. Oversized receives fail without returning truncated data.
 UDP deadlines close the socket. Broadcast and multicast controls, host lookup, and IPv6 are outside its contract.
@@ -107,7 +110,7 @@ Paths expose pure lexical operations; see the [path contract](../libs/portable-p
 Filesystem operations use native host paths; see the [filesystem contract](../libs/portable-fs/README.md).
 TCP exposes asynchronous client connections, listening, and accepting; see the [TCP contract](../libs/portable-tcp/README.md).
 TLS exposes verified client connections and server-side handshakes; see the [TLS contract](../libs/portable-tls/README.md).
-HTTP exposes bounded asynchronous requests; see the [HTTP contract](../libs/portable-http/README.md).
+HTTP exposes bounded asynchronous requests and connection serving; see the [HTTP contract](../libs/portable-http/README.md).
 UDP exposes asynchronous IPv4 datagrams; see the [UDP contract](../libs/portable-udp/README.md).
 DNS exposes codecs and explicit-server queries; see the [DNS contract](../libs/portable-dns/README.md).
 Random generation exposes `generate-bytes!` and `generate-int!`; see the [random contract](../libs/portable-random/README.md).

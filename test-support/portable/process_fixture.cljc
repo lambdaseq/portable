@@ -43,3 +43,17 @@
                                       (done)
                                       (do (.once child "exit" (fn [& _] (done))) (.kill child)))))
                     (do (.kill child) (throw (js/Error. "Fixture announced invalid ports.")))))))))))
+
+(defn run-client! [command callback]
+  #?(:clj
+     (let [process (-> (ProcessBuilder. ^java.util.List command) (.inheritIO) (.start))]
+       (doto (Thread. ^Runnable (bound-fn []
+                                  (when-not (.waitFor process 10 TimeUnit/SECONDS) (.destroyForcibly process))
+                                  (callback (.waitFor process))) "portable-fixture-client")
+         (.setDaemon true) (.start))
+       (fn [_] (.destroy process)))
+     :cljs
+     (let [process (.spawn (js/require "node:child_process") (first command) (to-array (rest command))
+                          #js {:stdio "inherit"})]
+       (.once process "exit" (fn [code _] (callback code)))
+       (fn [_] (.kill process)))))
