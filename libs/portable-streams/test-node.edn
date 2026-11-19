@@ -1,0 +1,4 @@
+{:target :nodejs
+ :output-to "target/tests.js"
+ :output-dir "target/cljs"
+ :optimizations :none}

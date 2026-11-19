@@ -47,6 +47,7 @@ jar tf libs/portable-dns/target/portable-dns-0.1.0.jar
 jar tf libs/portable-random/target/portable-random-0.1.0.jar
 jar tf libs/portable-crypto/target/portable-crypto-0.1.0.jar
 jar tf libs/portable-compression/target/portable-compression-0.1.0.jar
+jar tf libs/portable-streams/target/portable-streams-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
@@ -57,6 +58,7 @@ DNS codecs run on every verified runtime. Raw DNS queries use portable UDP/TCP a
 Secure random bytes and uniform bounded integers use native entropy sources on all four verified runtimes.
 SHA-256/SHA-512 digests and HMACs share an asynchronous callback contract, including browser Web Crypto.
 Gzip and zlib-wrapped DEFLATE use bounded asynchronous byte-vector operations on all four runtimes.
+Byte streams provide bounded memory pipes, explicit EOF and closure, and cancellable copying on every verified runtime.
 
 ### Troubleshooting
 
@@ -82,6 +84,7 @@ Gzip and zlib-wrapped DEFLATE use bounded asynchronous byte-vector operations on
 | `libs/portable-random/`         | Secure bytes and bounded integers, `lambdaseq/portable-random` |
 | `libs/portable-crypto/`         | SHA-256/SHA-512 digests and HMACs, `lambdaseq/portable-crypto`  |
 | `libs/portable-compression/`    | Bounded gzip and zlib DEFLATE, `lambdaseq/portable-compression` |
+| `libs/portable-streams/`        | Byte streams and bounded piping, `lambdaseq/portable-streams` |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -122,6 +125,9 @@ See the [crypto callback, byte-vector, and runtime contract](libs/portable-crypt
 
 For compression alone, use `lambdaseq/portable-compression` with `:local/root "../portable/libs/portable-compression"`.
 See the [compression formats, limits, and callbacks](libs/portable-compression/README.md).
+
+For byte streams alone, use `lambdaseq/portable-streams` with `:local/root "../portable/libs/portable-streams"`.
+See the [stream EOF, backpressure, and cancellation contract](libs/portable-streams/README.md).
 
 ## Portability contract
 

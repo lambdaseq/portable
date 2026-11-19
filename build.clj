@@ -116,7 +116,14 @@
                            :test-runner portable.compression-test-runner
                            :browser-tests "target/browser.html"
                            :lib lambdaseq/portable-compression
-                           :description "Bounded asynchronous gzip and zlib-wrapped DEFLATE."}})
+                           :description "Bounded asynchronous gzip and zlib-wrapped DEFLATE."}
+    :portable-streams {:kind :lib
+                      :dir "libs/portable-streams"
+                      :platform :cljc
+                      :test-runner portable.streams-test-runner
+                      :browser-tests "target/browser.html"
+                      :lib lambdaseq/portable-streams
+                      :description "Asynchronous byte streams and bounded cancellable piping."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)
