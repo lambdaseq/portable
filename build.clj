@@ -123,7 +123,15 @@
                       :test-runner portable.streams-test-runner
                       :browser-tests "target/browser.html"
                       :lib lambdaseq/portable-streams
-                      :description "Asynchronous byte streams and bounded cancellable piping."}})
+                      :description "Asynchronous byte streams and bounded cancellable piping."}
+    :portable-process {:kind :lib
+                      :dir "libs/portable-process"
+                      :platform :cljc
+                      :test-runner portable.process-test-runner
+                      :test-env {"PORTABLE_PROCESS_INHERITED" "parent" "PORTABLE_PROCESS_REMOVED" "remove-me"}
+                      :browser-tests "target/browser.html"
+                      :lib lambdaseq/portable-process
+                      :description "Native process lifecycle with portable stream stdio."}})
 
 (defn- select-modules [opts accepts?]
   (let [requested (:modules opts)

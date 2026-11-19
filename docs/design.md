@@ -20,6 +20,7 @@ Each API family lives in its own library and owns its public namespaces and shar
 `lambdaseq/portable-crypto` owns `portable.crypto`, with asynchronous SHA-256/SHA-512 digests and HMACs.
 `lambdaseq/portable-compression` owns `portable.compression`, with bounded asynchronous gzip and zlib-wrapped DEFLATE.
 `lambdaseq/portable-streams` owns `portable.streams`, with bounded memory pipes, finite sources, and cancellable transfers.
+`lambdaseq/portable-process` owns `portable.process`, with native child processes and portable-stream stdio.
 The dependency-only `lambdaseq/portable` umbrella includes every released family without forwarding functions.
 Families share a release version. Keep them independent unless a concrete shared concern requires a dependency.
 
@@ -47,6 +48,7 @@ DNS depends on bytes, UDP, TCP, and random generation. Protocol codecs remain us
 Random generation has no runtime dependency on another family. It shares byte-vector values with bytes and transport APIs.
 Crypto depends on bytes for its input and output contract. It uses native security primitives without depending on network families.
 Streams depend only on bytes, including shared private callback dispatch. Their adapter boundary remains independent of transport families.
+Processes depend on streams for native stdio endpoints and bytes for private callback dispatch.
 The generated build uses JVM tooling to package `.cljc` sources; that build setting does not restrict the intended API targets.
 
 ## API boundaries
@@ -105,6 +107,15 @@ Piping exclusively claims a read side and a write side, copies one chunk at a ti
 Success normally finishes output and releases claims. Failure or cancellation closes owned endpoints and settles once.
 The core runs in all four verified runtimes without native I/O dependencies.
 
+## Child processes
+
+Processes start from executable-and-argument vectors with optional native cwd and inherited environment overrides.
+Startup, exit waiting, and termination use asynchronous error-first callbacks. Browsers reject process operations explicitly.
+Stdin is a writable stream; stdout and stderr are independent readable streams with bounded chunks and backpressure.
+Finishing stdin sends EOF. Exit waits preserve output for draining and cache native exit codes and available signal metadata.
+Cancelling one wait leaves the child and other waits active. Termination requests target the direct child.
+Closing a process requests forced termination, closes all stdio, and reaps late native creation without replacing committed callbacks.
+
 ## Adding an API
 
 1. Define the family's use cases, create its library, and add it to the umbrella and build registry.
@@ -129,4 +140,5 @@ Random generation exposes `generate-bytes!` and `generate-int!`; see the [random
 Crypto exposes `digest!` and `hmac!`; see the [crypto contract](../libs/portable-crypto/README.md).
 Compression exposes `compress!` and `decompress!`; see the [compression contract](../libs/portable-compression/README.md).
 Streams expose memory sources, bounded pipes, read/write, finish/close, and `pipe!`; see the [streams contract](../libs/portable-streams/README.md).
+Processes expose `spawn!`, `get-stdio`, `wait!`, `terminate!`, and `close!`; see the [process contract](../libs/portable-process/README.md).
 Choose a distribution license before publishing. Module coordinates and build tooling do not select a license.

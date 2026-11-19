@@ -48,17 +48,19 @@ jar tf libs/portable-random/target/portable-random-0.1.0.jar
 jar tf libs/portable-crypto/target/portable-crypto-0.1.0.jar
 jar tf libs/portable-compression/target/portable-compression-0.1.0.jar
 jar tf libs/portable-streams/target/portable-streams-0.1.0.jar
+jar tf libs/portable-process/target/portable-process-0.1.0.jar
 ```
 
 The umbrella jar contains dependency metadata. Family jars contain their public `.cljc` namespaces.
 Shared contracts run on JVM Clojure, Babashka, Node, and headless Chrome.
-Browser environment, filesystem, TCP, TLS, and UDP operations are verified to fail explicitly.
+Browser environment, filesystem, TCP, TLS, UDP, and process operations are verified to fail explicitly.
 Browser HTTP uses Fetch; process-runtime HTTP uses portable's HTTP/1.1 stack over TCP and TLS.
 DNS codecs run on every verified runtime. Raw DNS queries use portable UDP/TCP and fail explicitly in browsers.
 Secure random bytes and uniform bounded integers use native entropy sources on all four verified runtimes.
 SHA-256/SHA-512 digests and HMACs share an asynchronous callback contract, including browser Web Crypto.
 Gzip and zlib-wrapped DEFLATE use bounded asynchronous byte-vector operations on all four runtimes.
 Byte streams provide bounded memory pipes, explicit EOF and closure, and cancellable copying on every verified runtime.
+Native child processes expose portable-stream stdio, asynchronous exit waits, and termination controls.
 
 ### Troubleshooting
 
@@ -85,6 +87,7 @@ Byte streams provide bounded memory pipes, explicit EOF and closure, and cancell
 | `libs/portable-crypto/`         | SHA-256/SHA-512 digests and HMACs, `lambdaseq/portable-crypto`  |
 | `libs/portable-compression/`    | Bounded gzip and zlib DEFLATE, `lambdaseq/portable-compression` |
 | `libs/portable-streams/`        | Byte streams and bounded piping, `lambdaseq/portable-streams` |
+| `libs/portable-process/`        | Child processes and stream stdio, `lambdaseq/portable-process` |
 | `test-support/`                | Shared test reporting and browser page; development only     |
 | `build.clj`                    | Self-contained build functions and module registration       |
 | `docs/design.md`               | Runtime targets, API boundaries, and implementation criteria |
@@ -128,6 +131,9 @@ See the [compression formats, limits, and callbacks](libs/portable-compression/R
 
 For byte streams alone, use `lambdaseq/portable-streams` with `:local/root "../portable/libs/portable-streams"`.
 See the [stream EOF, backpressure, and cancellation contract](libs/portable-streams/README.md).
+
+For child processes alone, use `lambdaseq/portable-process` with `:local/root "../portable/libs/portable-process"`.
+See the [process lifecycle, stdio, and runtime contract](libs/portable-process/README.md).
 
 ## Portability contract
 
